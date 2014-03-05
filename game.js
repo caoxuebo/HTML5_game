@@ -49,6 +49,7 @@ var SnailBait =  function () {
    this.BEE_CELLS_HEIGHT = 50,
    this.BUTTON_CELLS_HEIGHT = 22,
    this.BUTTON_CELLS_WIDTH  = 30,
+   this.BUTTON_PACE_VELOCITY = 80,  // pixels/second
    this.COIN_CELLS_HEIGHT = 28,
    this.COIN_CELLS_WIDTH = 28,
    this.DEFAULT_TOAST_TIME = 3000, // 3 seconds
@@ -60,12 +61,14 @@ var SnailBait =  function () {
    this.SAPPHIRE_CELLS_WIDTH = 32,
    this.SNAIL_BOMB_CELLS_HEIGHT = 20,
    this.SNAIL_BOMB_CELLS_WIDTH = 20,
+   this.SNAIL_BOMB_VELOCITY = 450,
    this.SNAIL_CELLS_WIDTH = 64,
    this.SNAIL_CELLS_HEIGHT = 34,
+   this.SNAIL_PACE_VELOCITY = 50,  // pixels/second
 
    // Constants are listed in alphabetical order from here on out
    
-   this.BACKGROUND_VELOCITY = 42,
+   this.BACKGROUND_VELOCITY = 32,
 
    this.PAUSED_CHECK_INTERVAL = 200,
 
@@ -81,17 +84,17 @@ var SnailBait =  function () {
    this.PLATFORM_VELOCITY_MULTIPLIER = 4.35,
 
    this.RUNNER_CELLS_HEIGHT = 60,
-   this.RUNNER_PAGE_FLIP_INTERVAL = 48,
+   this.RUN_ANIMATION_RATE = 17,  // fps
    this.RUNNER_HEIGHT = 43,
    
-   this.STARTING_BACKGROUND_VELOCITY = 0,
+   this.INITIAL_BACKGROUND_VELOCITY = 0,
 
-   this.STARTING_BACKGROUND_OFFSET = 0,
+   this.INITIAL_BACKGROUND_OFFSET = 0,
 
-   this.STARTING_RUNNER_LEFT = 50,
-   this.STARTING_PAGEFLIP_INTERVAL = -1,
-   this.STARTING_RUNNER_TRACK = 1,
-   this.STARTING_RUNNER_VELOCITY = 0,
+   this.INITIAL_RUNNER_LEFT = 50,
+   this.RUN_ANIMATION_INITIAL_RATE = 0,
+   this.INITIAL_RUNNER_TRACK = 1,
+   this.INITIAL_RUNNER_VELOCITY = 0,
 
    // Paused............................................................
    
@@ -122,18 +125,14 @@ var SnailBait =  function () {
    this.lastFpsUpdateTime = 0,
    this.fps = 60,
 
-   // Pageflip timing for runner........................................
-
-   this.runnerPageflipInterval = this.STARTING_PAGEFLIP_INTERVAL,
-   
    // Translation offsets...............................................
    
-   this.backgroundOffset = this.STARTING_BACKGROUND_OFFSET,
-   this.spriteOffset = this.STARTING_BACKGROUND_OFFSET,
+   this.backgroundOffset = this.INITIAL_BACKGROUND_OFFSET,
+   this.spriteOffset = this.INITIAL_BACKGROUND_OFFSET,
 
    // Velocities........................................................
 
-   this.bgVelocity = this.STARTING_BACKGROUND_VELOCITY,
+   this.bgVelocity = this.INITIAL_BACKGROUND_VELOCITY,
    this.platformVelocity,
 
    // Platforms.........................................................
@@ -151,7 +150,7 @@ var SnailBait =  function () {
       },
 
       {  left:      250,
-         width:     100,
+         width:     300,
          height:    this.PLATFORM_HEIGHT,
          fillStyle: 'rgb(150,190,255)',
          opacity:   1.0,
@@ -323,14 +322,14 @@ var SnailBait =  function () {
    // Buttons...........................................................
 
    this.buttonData = [
-      { platformIndex: 7 },
-      { platformIndex: 12 },
+      { platformIndex: 2 },
+      { platformIndex: 3 },
    ],
 
    // Coins.............................................................
 
    this.coinData = [
-      { left: 303,  top: this.TRACK_2_BASELINE - this.COIN_CELLS_HEIGHT }, 
+      { left: 303,  top: this.TRACK_3_BASELINE - this.COIN_CELLS_HEIGHT }, 
       { left: 469,  top: this.TRACK_3_BASELINE - 2*this.COIN_CELLS_HEIGHT }, 
       { left: 600,  top: this.TRACK_1_BASELINE - this.COIN_CELLS_HEIGHT }, 
       { left: 833,  top: this.TRACK_2_BASELINE - 2*this.COIN_CELLS_HEIGHT }, 
@@ -363,13 +362,7 @@ var SnailBait =  function () {
    // Snails............................................................
 
    this.snailData = [
-      { platformIndex: 13 },
-   ],
-   
-   // Snail bomb........................................................
-
-   this.snailBombData = [
-      { left: 2600, top: this.TRACK_2_BASELINE - this.SNAIL_BOMB_CELLS_HEIGHT }
+      { platformIndex: 1 },
    ],
    
    // Spritesheet cells................................................
@@ -488,7 +481,6 @@ var SnailBait =  function () {
    this.rubies       = [],
    this.sapphires    = [],
    this.snails       = [],
-   this.snailBombs   = [], 
    
    // Sprite artists...................................................
 
@@ -513,9 +505,129 @@ var SnailBait =  function () {
       }
    },
 
+   // Sprite behaviors.................................................
+
+   this.runBehavior = {
+      // Every runAnimationRate milliseconds, this behavior advances the
+      // runner's artist to the next frame of the spritesheet, provided the
+      // runner is not jumping or falling.
+      //
+      // This behavior is similar to the more general Cycle behavior in
+      // js/behaviors. The difference is that this behavior does not advance
+      // the sprite's artist if the sprite is jumping, falling, or the
+      // runner's runAnimationRate is 0.
+
+      lastAdvanceTime: 0,
+      
+      execute: function(sprite, time, fps) {
+         // Realize that this is a method in an object (runBehavior), that resides
+         // in another object (snailBait), so the 'this' reference in this method
+         // refers to runBehavior, not snailBait.
+        
+         if (sprite.runAnimationRate === 0) {
+            return;
+         }
+         
+         if (this.lastAdvanceTime === 0) {  // skip first time
+            this.lastAdvanceTime = time;
+         }
+         else if (time - this.lastAdvanceTime > 1000 / sprite.runAnimationRate) {
+            sprite.artist.advance();
+            this.lastAdvanceTime = time;
+         }
+      }
+   },
+
+   this.jumpBehavior = {
+      execute: function(sprite, time, fps) {
+         if (sprite.jumping) {
+            if (sprite.track !== 3) {
+               sprite.track++;
+            }
+            sprite.top = snailBait.calculatePlatformTop(sprite.track) -
+                         snailBait.RUNNER_CELLS_HEIGHT;
+
+            sprite.jumping = false; // immediately done jumping for now
+         }
+      } 
+   },
+
+   this.fallBehavior = {
+      execute: function(sprite, time, fps) {
+         if (sprite.falling) {
+            if (sprite.track !== 1) {
+               sprite.track--;
+            }
+            sprite.top = snailBait.calculatePlatformTop(sprite.track) -
+                         snailBait.RUNNER_CELLS_HEIGHT;
+
+            sprite.falling = false; // immediately done falling for now
+         } 
+      } 
+   },
+
+   this.paceBehavior = {
+      checkDirection: function (sprite) {
+         var sRight = sprite.left + sprite.width,
+             pRight = sprite.platform.left + sprite.platform.width;
+
+         if (sRight > pRight && sprite.direction === snailBait.RIGHT) {
+            sprite.direction = snailBait.LEFT;
+         }
+         else if (sprite.left < sprite.platform.left &&
+                  sprite.direction === snailBait.LEFT) {
+            sprite.direction = snailBait.RIGHT;
+         }
+      },
+      
+      moveSprite: function (sprite, fps) {
+         var pixelsToMove = sprite.velocityX / fps;
+
+         if (sprite.direction === snailBait.RIGHT) {
+            sprite.left += pixelsToMove;
+         }
+         else {
+            sprite.left -= pixelsToMove;
+         }
+      },
+
+      execute: function (sprite, time, fps) {
+         this.checkDirection(sprite);
+         this.moveSprite(sprite, fps);
+      }
+   },
+
+   this.snailShootBehavior = { // sprite is the snail
+      execute: function (sprite, time, fps) {
+         var bomb = sprite.bomb;
+
+         if (! bomb.visible && sprite.artist.cellIndex === 2) {
+            bomb.left = sprite.left;
+            bomb.visible = true;
+         }
+      }
+   },
+
+   this.snailBombMoveBehavior = {
+      execute: function(sprite, time, fps) {  // sprite is the bomb
+         if (sprite.visible && snailBait.spriteInView(sprite)) {
+            sprite.left -= snailBait.SNAIL_BOMB_VELOCITY / fps;
+         }
+
+         if (!snailBait.spriteInView(sprite)) {
+            sprite.visible = false;
+         }
+      }
+   },
+
    // Sprites...........................................................
 
-   this.runner = new Sprite('runner', this.runnerArtist);
+   this.runner = new Sprite('runner',          // type
+                            this.runnerArtist, // artist
+                            [ this.runBehavior, // behaviors
+                              this.jumpBehavior,
+                              this.fallBehavior
+                            ]); 
 
    // All sprites.......................................................
    // 
@@ -625,14 +737,14 @@ SnailBait.prototype = {
 
    turnLeft: function () {
       this.bgVelocity = -this.BACKGROUND_VELOCITY;
-      this.runnerPageflipInterval = this.RUNNER_PAGE_FLIP_INTERVAL;
+      this.runner.runAnimationRate = this.RUN_ANIMATION_RATE;
       this.runnerArtist.cells = this.runnerCellsLeft;
       this.runner.direction = this.LEFT;
    },
 
    turnRight: function () {
       this.bgVelocity = this.BACKGROUND_VELOCITY;
-      this.runnerPageflipInterval = this.RUNNER_PAGE_FLIP_INTERVAL;
+      this.runner.runAnimationRate = this.RUN_ANIMATION_RATE;
       this.runnerArtist.cells = this.runnerCellsRight;
       this.runner.direction = this.RIGHT;
    },
@@ -645,14 +757,34 @@ SnailBait.prototype = {
    },
 
    equipRunner: function () {
-      this.runner.track = this.STARTING_RUNNER_TRACK;
+      this.runner.runAnimationRate =
+         this.RUN_ANIMATION_INITIAL_RATE,
+   
+      this.runner.track = this.INITIAL_RUNNER_TRACK;
       this.runner.direction = this.LEFT;
-      this.runner.velocityX = this.STARTING_RUNNER_VELOCITY;
-
-      this.runner.left = this.STARTING_RUNNER_LEFT;
-      this.runner.top = this.calculatePlatformTop(this.runner.track) - this.RUNNER_CELLS_HEIGHT;
+      this.runner.velocityX = this.INITIAL_RUNNER_VELOCITY;
+      this.runner.left = this.INITIAL_RUNNER_LEFT;
+      this.runner.top = this.calculatePlatformTop(this.runner.track) -
+                        this.RUNNER_CELLS_HEIGHT;
 
       this.runner.artist.cells = this.runnerCellsRight;
+
+      this.runner.jumping = false;
+      this.runner.falling = false;
+
+      this.runner.jump = function () {
+         // this method is essentially a switch that turns
+         // on the runner's jumping behavior
+
+         this.jumping = !this.jumping // 'this' is the runner
+      };
+
+      this.runner.fall = function () {
+         // this method is essentially a switch that turns
+         // on the runner's falling behavior
+
+         this.falling = !this.falling // 'this' is the runner
+      };
    },
 
    createPlatformSprites: function () {
@@ -735,7 +867,7 @@ SnailBait.prototype = {
       for (var i = 0; i < sprites.length; ++i) {
          sprite = sprites[i];
 
-         if (spriteData[i].platformIndex) { // no platform
+         if (spriteData[i].platformIndex) { 
             this.putSpriteOnPlatform(sprite, this.platforms[spriteData[i].platformIndex]);
          }
          else {
@@ -745,6 +877,29 @@ SnailBait.prototype = {
       }
    },
 
+   armSnails: function () {
+      var snail,
+          snailBombArtist = new SpriteSheetArtist(this.spritesheet, this.snailBombCells);
+
+      for (var i=0; i < this.snails.length; ++i) {
+         snail = this.snails[i];
+         snail.bomb = new Sprite('snail bomb',
+                                  snailBombArtist,
+                                  [ this.snailBombMoveBehavior ]);
+
+         snail.bomb.width  = snailBait.SNAIL_BOMB_CELLS_WIDTH;
+         snail.bomb.height = snailBait.SNAIL_BOMB_CELLS_HEIGHT;
+
+         snail.bomb.top = snail.top + snail.bomb.height/2;
+         snail.bomb.left = snail.left + snail.bomb.width/2;
+         snail.bomb.visible = false;
+
+         snail.bomb.snail = snail;  // Snail bombs maintain a reference to their snail
+
+         this.sprites.push(snail.bomb);
+      }
+   },
+   
    addSpritesToSpriteArray: function () {
       for (var i=0; i < this.platforms.length; ++i) {
          this.sprites.push(this.platforms[i]);
@@ -776,10 +931,6 @@ SnailBait.prototype = {
 
      for (var i=0; i < this.snails.length; ++i) {
          this.sprites.push(this.snails[i]);
-      }
-
-      for (var i=0; i < this.snailBombs.length; ++i) {
-         this.sprites.push(this.snailBombs[i]);
       }
    },
 
@@ -819,17 +970,24 @@ SnailBait.prototype = {
                                                this.buttonCells),
       goldButtonArtist = new SpriteSheetArtist(this.spritesheet,
                                                this.goldButtonCells);
-   
+
       for (var i = 0; i < this.buttonData.length; ++i) {
          if (i === this.buttonData.length - 1) {
-            button = new Sprite('button', goldButtonArtist);
+            button = new Sprite('button',
+                                 goldButtonArtist,
+                                 [ this.paceBehavior ]);
          }
          else {
-            button = new Sprite('button', buttonArtist);
+            button = new Sprite('button',
+                                 buttonArtist, 
+                                 [ this.paceBehavior ]);
          }
 
          button.width = this.BUTTON_CELLS_WIDTH;
          button.height = this.BUTTON_CELLS_HEIGHT;
+
+         button.velocityX = this.BUTTON_PACE_VELOCITY;
+         button.direction = this.RIGHT;
 
          this.buttons.push(button);
       }
@@ -854,7 +1012,7 @@ SnailBait.prototype = {
           sapphireArtist = new SpriteSheetArtist(this.spritesheet, this.sapphireCells);
    
       for (var i = 0; i < this.sapphireData.length; ++i) {
-         sapphire = new Sprite('sapphire', sapphireArtist);
+         sapphire = new Sprite('sapphire', sapphireArtist, [ new Cycle(100, 2000) ]);
 
          sapphire.width = this.SAPPHIRE_CELLS_WIDTH;
          sapphire.height = this.SAPPHIRE_CELLS_HEIGHT;
@@ -868,7 +1026,7 @@ SnailBait.prototype = {
           rubyArtist = new SpriteSheetArtist(this.spritesheet, this.rubyCells);
    
       for (var i = 0; i < this.rubyData.length; ++i) {
-         ruby = new Sprite('ruby', rubyArtist);
+         ruby = new Sprite('ruby', rubyArtist, [ new Cycle(100, 500) ]);
 
          ruby.width = this.RUBY_CELLS_WIDTH;
          ruby.height = this.RUBY_CELLS_HEIGHT;
@@ -879,26 +1037,23 @@ SnailBait.prototype = {
    
    createSnailSprites: function () {
       var snail,
-          snailArtist = new SpriteSheetArtist(this.spritesheet,
-                                              this.rubyCells),
-          snailBombArtist = new SpriteSheetArtist(this.spritesheet,
-                                                  this.snailBombCells);
+          snailArtist = new SpriteSheetArtist(this.spritesheet, this.snailCells);
    
       for (var i = 0; i < this.snailData.length; ++i) {
-         snail = new Sprite('snail', snailArtist);
+         snail = new Sprite('snail',
+                            snailArtist,
+                            [ this.paceBehavior,
+                              this.snailShootBehavior,
+                              new Cycle(300, 1500)
+                            ]);
 
-         snail.width = this.SNAIL_CELLS_WIDTH;
+         snail.width  = this.SNAIL_CELLS_WIDTH;
          snail.height = this.SNAIL_CELLS_HEIGHT;
 
-         snail.bomb = new Sprite('snailBomb', snailBombArtist);
-
-         snail.bomb.width = this.SNAILBOMB_CELLS_WIDTH;
-         snail.bomb.height = this.SNAILBOMB_CELLS_HEIGHT;
-
-         snail.bomb.snail = snail;  // Snail bombs maintain a reference to their snail
+         snail.velocityX = this.SNAIL_PACE_VELOCITY;
+         snail.direction = this.RIGHT;
          
          this.snails.push(snail);
-         this.snailBombs.push(snail.bomb);
       }
    },
    
@@ -907,8 +1062,9 @@ SnailBait.prototype = {
    
       for (var i=0; i < this.sprites.length; ++i) {
          sprite = this.sprites[i];
+
          if (sprite.visible && this.spriteInView(sprite)) {
-            sprite.update(this.context, now, this.fps);
+            sprite.update(now, this.fps);
          }
       }
    },
@@ -918,7 +1074,7 @@ SnailBait.prototype = {
    
       for (var i=0; i < this.sprites.length; ++i) {
          sprite = this.sprites[i];
-   
+
          if (sprite.visible && this.spriteInView(sprite)) {
             this.context.translate(-sprite.offset, 0);
 
@@ -965,7 +1121,8 @@ SnailBait.prototype = {
       this.positionSprites(this.rubies,     this.rubyData);
       this.positionSprites(this.sapphires,  this.sapphireData);
       this.positionSprites(this.snails,     this.snailData);
-      this.positionSprites(this.snailBombs, this.snailBombData);
+
+      this.armSnails();
    },
 
    // Toast................................................................
@@ -1012,21 +1169,11 @@ window.onkeydown = function (e) {
       snailBait.turnRight();
    }
    else if (key === 74) { // 'j'
-      if (snailBait.runner.track === 3) {
-         return;
-      }
-      snailBait.runner.track++;
+      snailBait.runner.jump();
    }
    else if (key === 70) { // 'f'
-      if (snailBait.runner.track === 1) {
-         return;
-      }
-
-      snailBait.runner.track--;
+      snailBait.runner.fall();
    }
-
-   snailBait.runner.top = snailBait.calculatePlatformTop(snailBait.runner.track) -
-                      snailBait.RUNNER_CELLS_HEIGHT;
 };
 
 window.onblur = function (e) {  // pause if unpaused
