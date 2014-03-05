@@ -29,7 +29,6 @@
 */
 
 // snailBait constructor --------------------------------------------
-
 var SnailBait =  function () {
    this.canvas = document.getElementById('game-canvas'),
    this.context = this.canvas.getContext('2d'),
@@ -44,33 +43,20 @@ var SnailBait =  function () {
    this.LEFT = 1,
    this.RIGHT = 2,
 
-   this.BACKGROUND_VELOCITY = 14,     // Slow
-   this.RUN_ANIMATION_RATE = 10,
-   this.RUNNER_JUMP_DURATION = 3000, // milliseconds
-   this.BUTTON_PACE_VELOCITY = 25,   // pixels/second
-   this.SNAIL_PACE_VELOCITY = 16,     // pixels/second
-   this.SNAIL_BOMB_VELOCITY = 180,
-
-   this.INSTRUCTIONS_OPACITY = 0.5,
-
-   this.RUBY_SPARKLE_DURATION = 700,
-   this.RUBY_SPARKLE_INTERVAL = 2000,
-   this.SAPPHIRE_SPARKLE_DURATION = 400,
-   this.SAPPHIRE_SPARKLE_INTERVAL = 1500,
-
-   /* Collectively, the following constants control Snail Bait's time */
-
-   this.BACKGROUND_VELOCITY = 32,    // Normal pace
-   this.RUN_ANIMATION_RATE = 17, // fps
+   /* Collectively, these constants control Snail Bait's time */
+         
+   this.BACKGROUND_VELOCITY = 32,    // pixels/second
+   this.RUN_ANIMATION_RATE = 17,     // frames/second
    this.RUNNER_JUMP_DURATION = 1000, // milliseconds
    this.BUTTON_PACE_VELOCITY = 50,   // pixels/second
    this.SNAIL_PACE_VELOCITY = 80,    // pixels/second
    this.SNAIL_BOMB_VELOCITY = 450,
 
-   this.RUBY_SPARKLE_DURATION = 200,
-   this.RUBY_SPARKLE_INTERVAL = 500,
-   this.SAPPHIRE_SPARKLE_DURATION = 100,
-   this.SAPPHIRE_SPARKLE_INTERVAL = 300,
+   this.RUBY_SPARKLE_DURATION = 200,     // milliseconds
+   this.RUBY_SPARKLE_INTERVAL = 500,     // milliseconds
+   this.SAPPHIRE_SPARKLE_DURATION = 100, // milliseconds
+   this.SAPPHIRE_SPARKLE_INTERVAL = 300, // milliseconds
+   this.SAPPHIRE_BOUNCE_RISE_DURATION = 80, // milliseconds
 
    this.GRAVITY_FORCE = 9.81,
 
@@ -80,24 +66,21 @@ var SnailBait =  function () {
    this.EXPLOSION_CELLS_HEIGHT = 62,
    this.EXPLOSION_DURATION = 5000,
 
-   /* End of contsants that control Snail Bait's time */
-   
    this.NUM_TRACKS = 3,
 
    this.PLATFORM_HEIGHT = 8,  
    this.PLATFORM_STROKE_WIDTH = 2,
    this.PLATFORM_STROKE_STYLE = 'rgb(0,0,0)',
 
-   // Platform scrolling offset (and therefore speed) is
-   // PLATFORM_VELOCITY_MULTIPLIER * backgroundOffset: The
-   // platforms move PLATFORM_VELOCITY_MULTIPLIER times as
-   // fast as the background.
+   // Platform scrolling offset is PLATFORM_VELOCITY_MULTIPLIER *
+   // backgroundOffset. The platforms move PLATFORM_VELOCITY_MULTIPLIER
+   // times as fast as the background.
 
    this.PLATFORM_VELOCITY_MULTIPLIER = 4.35,
 
-   this.RUNNER_CELLS_HEIGHT = 60,
+   this.RUNNER_CELLS_HEIGHT = 60, // pixels
    this.RUNNER_HEIGHT = 43,
-   this.RUNNER_JUMP_HEIGHT = 120, // pixels
+   this.RUNNER_JUMP_HEIGHT = 120,
 
    this.RUN_ANIMATION_INITIAL_RATE = 0,
 
@@ -198,7 +181,7 @@ var SnailBait =  function () {
          fillStyle: 'rgb(250,0,0)',
          opacity:   1.0,
          track:     3,
-         pulsate:   false
+         pulsate:   true
       },
 
       {  left:      633,
@@ -518,7 +501,8 @@ var SnailBait =  function () {
    
    // Sprite artists...................................................
 
-   this.runnerArtist = new SpriteSheetArtist(this.spritesheet, this.runnerCellsRight),
+   this.runnerArtist = new SpriteSheetArtist(this.spritesheet,
+                                             this.runnerCellsRight),
 
    this.platformArtist = {
       draw: function (sprite, context) {
@@ -539,14 +523,16 @@ var SnailBait =  function () {
       }
    },
 
-   // Sprite behaviors.................................................
+   // Sprite behaviors........................................................
+
+   // Runner's run behavior...................................................
 
    this.runBehavior = {
       // Every runAnimationRate milliseconds, this behavior advances the
       // runner's artist to the next frame of the spritesheet, provided the
       // runner is not jumping or falling.
       //
-      // This behavior is similar to the more general Cycle behavior in
+      // This behavior is similar to the more general CycleBehavior behavior in
       // js/behaviors. The difference is that this behavior does not advance
       // the sprite's artist if the sprite is jumping, falling, or the
       // runner's runAnimationRate is 0.
@@ -576,73 +562,75 @@ var SnailBait =  function () {
 
    this.jumpBehavior = {
       pause: function (sprite) {
-         if (sprite.ascendStopwatch.isRunning()) {
-            sprite.ascendStopwatch.pause();
+         if (sprite.ascendAnimationTimer.isRunning()) {
+            sprite.ascendAnimationTimer.pause();
          }
-         else if (!sprite.descendStopwatch.isRunning()) {
-            sprite.descendStopwatch.pause();
+         else if (!sprite.descendAnimationTimer.isRunning()) {
+            sprite.descendAnimationTimer.pause();
          }
       },
 
       unpause: function (sprite) {
-         if (sprite.ascendStopwatch.isRunning()) {
-            sprite.ascendStopwatch.unpause();
+         if (sprite.ascendAnimationTimer.isRunning()) {
+            sprite.ascendAnimationTimer.unpause();
          }
-         else if (sprite.descendStopwatch.isRunning()) {
-            sprite.descendStopwatch.unpause();
+         else if (sprite.descendAnimationTimer.isRunning()) {
+            sprite.descendAnimationTimer.unpause();
          }
       },
 
-      isJumpOver: function (sprite) {
-         return ! sprite.ascendStopwatch.isRunning() &&
-                ! sprite.descendStopwatch.isRunning();
+      jumpIsOver: function (sprite) {
+         return ! sprite.ascendAnimationTimer.isRunning() &&
+                ! sprite.descendAnimationTimer.isRunning();
       },
 
       // Ascent...............................................................
 
       isAscending: function (sprite) {
-         return sprite.ascendStopwatch.isRunning();
+         return sprite.ascendAnimationTimer.isRunning();
       },
       
       ascend: function (sprite) {
-         var elapsed = sprite.ascendStopwatch.getElapsedTime(),
-             deltaY  = elapsed / (sprite.JUMP_DURATION/2) * sprite.JUMP_HEIGHT;
+         var elapsed = sprite.ascendAnimationTimer.getElapsedTime(),
+             deltaH  = elapsed / (sprite.JUMP_DURATION/2) * sprite.JUMP_HEIGHT;
 
-         sprite.top = sprite.verticalLaunchPosition - deltaY;
+         sprite.top = sprite.verticalLaunchPosition - deltaH;
       },
 
       isDoneAscending: function (sprite) {
-         return sprite.ascendStopwatch.getElapsedTime() > sprite.JUMP_DURATION/2;
+         return sprite.ascendAnimationTimer.getElapsedTime() > sprite.JUMP_DURATION/2;
       },
       
       finishAscent: function (sprite) {
          sprite.jumpApex = sprite.top;
-         sprite.ascendStopwatch.stop();
-         sprite.descendStopwatch.start();
+         sprite.ascendAnimationTimer.stop();
+         sprite.descendAnimationTimer.start();
       },
       
       // Descents.............................................................
 
       isDescending: function (sprite) {
-         return sprite.descendStopwatch.isRunning();
+         return sprite.descendAnimationTimer.isRunning();
       },
 
       descend: function (sprite, verticalVelocity, fps) {
-         var elapsed = sprite.descendStopwatch.getElapsedTime(),
-             deltaY  = elapsed / (sprite.JUMP_DURATION/2) * sprite.JUMP_HEIGHT;
+         var elapsed = sprite.descendAnimationTimer.getElapsedTime(),
+             deltaH  = elapsed / (sprite.JUMP_DURATION/2) * sprite.JUMP_HEIGHT;
 
-         sprite.top = sprite.jumpApex + deltaY;
+         sprite.top = sprite.jumpApex + deltaH;
       },
       
       isDoneDescending: function (sprite) {
-         return sprite.descendStopwatch.getElapsedTime() > sprite.JUMP_DURATION/2;
+         return sprite.descendAnimationTimer.getElapsedTime() > sprite.JUMP_DURATION/2;
       },
 
       finishDescent: function (sprite) {
          sprite.top = sprite.verticalLaunchPosition;
-         sprite.descendStopwatch.stop();
          sprite.jumping = false;
          sprite.runAnimationRate = snailBait.RUN_ANIMATION_RATE;
+
+         sprite.ascendAnimationTimer.stop();
+         sprite.descendAnimationTimer.stop();
       },
       
       // Execute..............................................................
@@ -652,18 +640,18 @@ var SnailBait =  function () {
             return;
          }
 
-         if (this.isJumpOver(sprite)) {
+         if (this.jumpIsOver(sprite)) {
             sprite.jumping = false;
             return;
          }
 
          if (this.isAscending(sprite)) {
-            if ( ! this.isDoneAscending(sprite)) this.ascend(sprite);
-            else                               this.finishAscent(sprite);
+            if ( ! this.isDoneAscending(sprite)) { this.ascend(sprite); }
+            else                                 { this.finishAscent(sprite); }
          }
          else if (this.isDescending(sprite)) {
-            if ( ! this.isDoneDescending(sprite)) this.descend(sprite); 
-            else                                this.finishDescent(sprite);
+            if ( ! this.isDoneDescending(sprite)) { this.descend(sprite); }
+            else                                  { this.finishDescent(sprite); }
          }
       } 
    },
@@ -761,9 +749,7 @@ var SnailBait =  function () {
    );
 };
 
-
-// snailBait.prototype ----------------------------------------------
-
+// SnailBait's prototype --------------------------------------------------
 
 SnailBait.prototype = {
    // Drawing..............................................................
@@ -866,39 +852,12 @@ SnailBait.prototype = {
    },
    
    // Sprites..............................................................
- 
-   explode: function (sprite, silent) {
-      sprite.exploding = true;
-      this.explosionAnimator.start(sprite, true);  // true means sprite reappears
-   },
 
-   equipRunnerForJumping: function () {
-      this.runner.JUMP_DURATION = this.RUNNER_JUMP_DURATION; // milliseconds
-      this.runner.JUMP_HEIGHT = this.RUNNER_JUMP_HEIGHT;
-
-      this.runner.jumping = false;
-
-      this.runner.ascendStopwatch =
-         new Stopwatch(this.runner.JUMP_DURATION/2);
-
-      this.runner.descendStopwatch =
-         new Stopwatch(this.runner.JUMP_DURATION/2);
-
-      this.runner.jump = function () {
-         if (!this.jumping) {// 'this' is the runner
-            this.runAnimationRate = 0;
-            this.jumping = true;
-            this.verticalLaunchPosition = this.top;
-            this.ascendStopwatch.start();
-         }
-      };
-   },
-   
    equipRunner: function () {
       // Animation rate, track, direction, velocity,
       // position, and artist cells........................................
       
-      this.runner.runAnimationRate = this.RUN_ANIMATION_INITIAL_RATE;
+      this.runner.runAnimationRate = this.RUN_ANIMATION_INITIAL_RATE,
    
       this.runner.track = this.INITIAL_RUNNER_TRACK;
       this.runner.direction = this.LEFT;
@@ -912,6 +871,31 @@ SnailBait.prototype = {
       this.equipRunnerForJumping();
    },
 
+   equipRunnerForJumping: function () {
+      this.runner.JUMP_DURATION = this.RUNNER_JUMP_DURATION; // milliseconds
+      this.runner.JUMP_HEIGHT = this.RUNNER_JUMP_HEIGHT;
+
+      this.runner.jumping = false;
+
+      this.runner.ascendAnimationTimer =
+         new AnimationTimer(this.runner.JUMP_DURATION/2,
+                            AnimationTimer.makeEaseOutTransducer(1.1));
+
+      this.runner.descendAnimationTimer =
+         new AnimationTimer(this.runner.JUMP_DURATION/2,
+                            AnimationTimer.makeEaseInTransducer(1.1));
+
+      this.runner.jump = function () {
+         if (this.jumping) // 'this' is the runner
+            return;
+
+         this.runAnimationRate = 0;
+         this.jumping = true;
+         this.verticalLaunchPosition = this.top;
+         this.ascendAnimationTimer.start();
+      };
+   },
+   
    createPlatformSprites: function () {
       var sprite, pd;  // Sprite, Platform data
    
@@ -930,8 +914,17 @@ SnailBait.prototype = {
 
          sprite.top = this.calculatePlatformTop(pd.track);
    
+         if (sprite.pulsate) {
+            sprite.behaviors = [ new PulseBehavior(1000, 0.5) ];
+         }
+
          this.platforms.push(sprite);
       }
+   },
+ 
+   explode: function (sprite, silent) {
+      sprite.exploding = true;
+      this.explosionAnimator.start(sprite, true);  // true means sprite reappears
    },
 
    // Animation............................................................
@@ -1163,8 +1156,11 @@ SnailBait.prototype = {
    
       for (var i = 0; i < this.sapphireData.length; ++i) {
          sapphire = new Sprite('sapphire', sapphireArtist,
-                               [ new Cycle(this.SAPPHIRE_SPARKLE_DURATION,
-                                           this.SAPPHIRE_SPARKLE_INTERVAL) ]);
+                               [ new CycleBehavior(this.SAPPHIRE_SPARKLE_DURATION,
+                                           this.SAPPHIRE_SPARKLE_INTERVAL),
+
+                                 new BounceBehavior()
+                               ]);
 
          sapphire.width = this.SAPPHIRE_CELLS_WIDTH;
          sapphire.height = this.SAPPHIRE_CELLS_HEIGHT;
@@ -1178,8 +1174,8 @@ SnailBait.prototype = {
           rubyArtist = new SpriteSheetArtist(this.spritesheet, this.rubyCells);
    
       for (var i = 0; i < this.rubyData.length; ++i) {
-         ruby = new Sprite('ruby', rubyArtist, [ new Cycle(200, 500) ]);
-         ruby = new Sprite('ruby', rubyArtist, [ new Cycle(this.RUBY_SPARKLE_DURATION,
+         ruby = new Sprite('ruby', rubyArtist, [ new CycleBehavior(200, 500) ]);
+         ruby = new Sprite('ruby', rubyArtist, [ new CycleBehavior(this.RUBY_SPARKLE_DURATION,
                                                            this.RUBY_SPARKLE_INTERVAL) ]);
          ruby.width = this.RUBY_CELLS_WIDTH;
          ruby.height = this.RUBY_CELLS_HEIGHT;
@@ -1197,7 +1193,7 @@ SnailBait.prototype = {
                             snailArtist,
                             [ this.paceBehavior,
                               this.snailShootBehavior,
-                              new Cycle(300, 1500)
+                              new CycleBehavior(300, 1500)
                             ]);
 
          snail.width  = this.SNAIL_CELLS_WIDTH;

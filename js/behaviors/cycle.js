@@ -28,16 +28,17 @@
  * OTHER DEALINGS IN THE SOFTWARE.
 */
 
+// snailBait constructor --------------------------------------------
 // CYCLE: For sprites that have a spritesheet artist, this behavior
 //        advances the sprite artist through the sprite's images.
 
-Cycle = function (interval, delay) {
+CycleBehavior = function (interval, delay) {
    this.interval = interval || 0;  //  milliseconds
    this.delay = delay || 0;
    this.lastAdvance = 0;
 };
 
-Cycle.prototype = { 
+CycleBehavior.prototype = { 
    execute: function(sprite, time, fps) {
       if (this.lastAdvance === 0) {
          this.lastAdvance = time;

@@ -28,6 +28,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
 */
 
+// snailBait constructor --------------------------------------------
 // Sprite Artists............................................................
 
 // Artists draw sprites with a draw(sprite, context) method. ImageArtists

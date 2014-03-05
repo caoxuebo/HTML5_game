@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2012 David Geary.
+ * Copyright (C) 2012 David Geary. This code is from the book
+ * Core HTML5 Canvas, published by Prentice-Hall in 2012.
  *
  * License:
  *

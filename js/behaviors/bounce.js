@@ -28,23 +28,24 @@
  * OTHER DEALINGS IN THE SOFTWARE.
 */
 
-// BOUNCE: Bounce a sprite up and down, easing out on the way up
+// snailBait constructor --------------------------------------------
+// BOUNCE: BounceBehavior a sprite up and down, easing out on the way up
 //         and easing in on the way down.
 
-Bounce = function (riseTime, fallTime, distance) {
-   this.riseTime = riseTime || 800;
-   this.fallTime = fallTime || 800;
-   this.distance = distance || 30;
+BounceBehavior = function (riseTime, fallTime, distance) {
+   this.riseTime = riseTime || 1000;
+   this.fallTime = fallTime || 1000;
+   this.distance = distance || 100;
 
    this.riseTimer = new AnimationTimer(this.riseTime,
-                                       AnimationTimer.makeEaseOut(1));
+                                       AnimationTimer.makeEaseOutTransducer(1.2));
 
    this.fallTimer = new AnimationTimer(this.fallTime,
-                                       AnimationTimer.makeEaseIn(1));
+                                       AnimationTimer.makeEaseInTransducer(1.2));
    this.paused = false;
 }
 
-Bounce.prototype = {
+BounceBehavior.prototype = {
    pause: function() {
       if (!this.riseTimer.isPaused()) {
          this.riseTimer.pause();
@@ -117,7 +118,7 @@ Bounce.prototype = {
       }
 
       if(this.isRising()) {   // Rising
-         if(!this.riseTimer.isOver()) {  // Not done rising
+         if(!this.riseTimer.isExpired()) {  // Not done rising
             this.rise(sprite);
          }
          else {  // Done rising
@@ -125,7 +126,7 @@ Bounce.prototype = {
          }
       }
       else if(this.isFalling()) { // Falling
-         if(!this.fallTimer.isOver()) {     // Not done falling
+         if(!this.fallTimer.isExpired()) {     // Not done falling
             this.fall(sprite);
          }
          else { // Done falling
