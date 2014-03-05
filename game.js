@@ -28,84 +28,112 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
 */
-var canvas = document.getElementById('game-canvas'),
-    context = canvas.getContext('2d'),
+// snailBait constructor --------------------------------------------
 
-// Constants............................................................
+var SnailBait =  function () {
+   this.canvas = document.getElementById('game-canvas'),
+   this.context = this.canvas.getContext('2d'),
 
-   LEFT = 1,
-   RIGHT = 2,
+   // HTML elements........................................................
+   
+   this.fpsElement = document.getElementById('fps'),
+   this.toast = document.getElementById('toast'),
+
+   // Constants............................................................
+
+   this.LEFT = 1,
+   this.RIGHT = 2,
+   this.STATIONARY = 3,
 
    // Constants are listed in alphabetical order from here on out
    
-   BACKGROUND_VELOCITY = 42,
+   this.BACKGROUND_VELOCITY = 42,
+   this.DEFAULT_TOAST_TIME = 1000,
 
-   PAUSED_CHECK_INTERVAL = 200,
+   this.PAUSED_CHECK_INTERVAL = 200,
 
-   PLATFORM_HEIGHT = 8,  
-   PLATFORM_STROKE_WIDTH = 2,
-   PLATFORM_STROKE_STYLE = 'rgb(0,0,0)',
+   this.PLATFORM_HEIGHT = 8,  
+   this.PLATFORM_STROKE_WIDTH = 2,
+   this.PLATFORM_STROKE_STYLE = 'rgb(0,0,0)',
 
    // Platform scrolling offset (and therefore speed) is
    // PLATFORM_VELOCITY_MULTIPLIER * backgroundOffset: The
    // platforms move PLATFORM_VELOCITY_MULTIPLIER times as
    // fast as the background.
 
-   PLATFORM_VELOCITY_MULTIPLIER = 4.35,
+   this.PLATFORM_VELOCITY_MULTIPLIER = 4.35,
 
-   RUNNER_HEIGHT = 43,
+   this.RUNNER_HEIGHT = 43,
    
-   STARTING_BACKGROUND_VELOCITY = 0,
+   this.STARTING_BACKGROUND_VELOCITY = 0,
 
-   STARTING_PLATFORM_OFFSET = 0,
-   STARTING_BACKGROUND_OFFSET = 0,
+   this.STARTING_PLATFORM_OFFSET = 0,
+   this.STARTING_BACKGROUND_OFFSET = 0,
 
-   STARTING_RUNNER_LEFT = 50,
-   STARTING_RUNNER_TRACK = 1,
+   this.STARTING_RUNNER_LEFT = 50,
+   this.STARTING_PAGEFLIP_INTERVAL = -1,
+   this.STARTING_RUNNER_TRACK = 1,
+   this.STARTING_RUNNER_VELOCITY = 0,
+
+   // Paused............................................................
+   
+   this.paused = false,
+   this.pauseStartTime = 0,
+   this.totalTimePaused = 0,
+
+   this.windowHasFocus = true,
 
    // Track baselines...................................................
 
-   TRACK_1_BASELINE = 323,
-   TRACK_2_BASELINE = 223,
-   TRACK_3_BASELINE = 123,
+   this.TRACK_1_BASELINE = 323,
+   this.TRACK_2_BASELINE = 223,
+   this.TRACK_3_BASELINE = 123,
 
    // Fps indicator.....................................................
    
-   fpsElement = document.getElementById('fps'),
+   this.fpsToast = document.getElementById('fps'),
 
    // Images............................................................
    
-   background  = new Image(),
-   runnerImage = new Image(),
+   this.background  = new Image(),
+   this.runnerImage = new Image(),
 
    // Time..............................................................
    
-   lastAnimationFrameTime = 0,
-   lastFpsUpdateTime = 0,
-   fps = 60,
+   this.lastAnimationFrameTime = 0,
+   this.lastFpsUpdateTime = 0,
+   this.fps = 60,
 
    // Runner track......................................................
 
-   runnerTrack = STARTING_RUNNER_TRACK,
+   this.runnerTrack = this.STARTING_RUNNER_TRACK,
+
+   // Pageflip timing for runner........................................
+
+   this.runnerPageflipInterval = this.STARTING_PAGEFLIP_INTERVAL,
+   
+   // Scrolling direction...............................................
+
+   this.scrollingDirection = this.STATIONARY,
    
    // Translation offsets...............................................
-   
-   backgroundOffset = STARTING_BACKGROUND_OFFSET,
-   platformOffset = STARTING_PLATFORM_OFFSET,
+
+   this.backgroundOffset = this.STARTING_BACKGROUND_OFFSET,
+   this.platformOffset = this.STARTING_PLATFORM_OFFSET,
 
    // Velocities........................................................
 
-   bgVelocity = STARTING_BACKGROUND_VELOCITY,
-   platformVelocity,
+   this.bgVelocity = this.STARTING_BACKGROUND_VELOCITY,
+   this.platformVelocity,
 
    // Platforms.........................................................
 
-   platformData = [
+   this.platformData = [
       // Screen 1.......................................................
       {
          left:      10,
          width:     230,
-         height:    PLATFORM_HEIGHT,
+         height:    this.PLATFORM_HEIGHT,
          fillStyle: 'rgb(150,190,255)',
          opacity:   1.0,
          track:     1,
@@ -114,7 +142,7 @@ var canvas = document.getElementById('game-canvas'),
 
       {  left:      250,
          width:     100,
-         height:    PLATFORM_HEIGHT,
+         height:    this.PLATFORM_HEIGHT,
          fillStyle: 'rgb(150,190,255)',
          opacity:   1.0,
          track:     2,
@@ -123,7 +151,7 @@ var canvas = document.getElementById('game-canvas'),
 
       {  left:      400,
          width:     125,
-         height:    PLATFORM_HEIGHT,
+         height:    this.PLATFORM_HEIGHT,
          fillStyle: 'rgb(250,0,0)',
          opacity:   1.0,
          track:     3,
@@ -132,7 +160,7 @@ var canvas = document.getElementById('game-canvas'),
 
       {  left:      633,
          width:     100,
-         height:    PLATFORM_HEIGHT,
+         height:    this.PLATFORM_HEIGHT,
          fillStyle: 'rgb(80,140,230)',
          opacity:   1.0,
          track:     1,
@@ -143,7 +171,7 @@ var canvas = document.getElementById('game-canvas'),
                
       {  left:      810,
          width:     100,
-         height:    PLATFORM_HEIGHT,
+         height:    this.PLATFORM_HEIGHT,
          fillStyle: 'rgb(200,200,0)',
          opacity:   1.0,
          track:     2,
@@ -152,7 +180,7 @@ var canvas = document.getElementById('game-canvas'),
 
       {  left:      1025,
          width:     100,
-         height:    PLATFORM_HEIGHT,
+         height:    this.PLATFORM_HEIGHT,
          fillStyle: 'rgb(80,140,230)',
          opacity:   1.0,
          track:     2,
@@ -161,7 +189,7 @@ var canvas = document.getElementById('game-canvas'),
 
       {  left:      1200,
          width:     125,
-         height:    PLATFORM_HEIGHT,
+         height:    this.PLATFORM_HEIGHT,
          fillStyle: 'aqua',
          opacity:   1.0,
          track:     3,
@@ -170,7 +198,7 @@ var canvas = document.getElementById('game-canvas'),
 
       {  left:      1400,
          width:     180,
-         height:    PLATFORM_HEIGHT,
+         height:    this.PLATFORM_HEIGHT,
          fillStyle: 'rgb(80,140,230)',
          opacity:   1.0,
          track:     1,
@@ -181,7 +209,7 @@ var canvas = document.getElementById('game-canvas'),
                
       {  left:      1625,
          width:     100,
-         height:    PLATFORM_HEIGHT,
+         height:    this.PLATFORM_HEIGHT,
          fillStyle: 'rgb(200,200,0)',
          opacity:   1.0,
          track:     2,
@@ -190,7 +218,7 @@ var canvas = document.getElementById('game-canvas'),
 
       {  left:      1800,
          width:     250,
-         height:    PLATFORM_HEIGHT,
+         height:    this.PLATFORM_HEIGHT,
          fillStyle: 'rgb(80,140,230)',
          opacity:   1.0,
          track:     1,
@@ -199,7 +227,7 @@ var canvas = document.getElementById('game-canvas'),
 
       {  left:      2000,
          width:     100,
-         height:    PLATFORM_HEIGHT,
+         height:    this.PLATFORM_HEIGHT,
          fillStyle: 'rgb(200,200,80)',
          opacity:   1.0,
          track:     2,
@@ -208,7 +236,7 @@ var canvas = document.getElementById('game-canvas'),
 
       {  left:      2100,
          width:     100,
-         height:    PLATFORM_HEIGHT,
+         height:    this.PLATFORM_HEIGHT,
          fillStyle: 'aqua',
          opacity:   1.0,
          track:     3,
@@ -219,7 +247,7 @@ var canvas = document.getElementById('game-canvas'),
 
       {  left:      2269,
          width:     200,
-         height:    PLATFORM_HEIGHT,
+         height:    this.PLATFORM_HEIGHT,
          fillStyle: 'gold',
          opacity:   1.0,
          track:     1,
@@ -227,154 +255,313 @@ var canvas = document.getElementById('game-canvas'),
 
       {  left:      2500,
          width:     200,
-         height:    PLATFORM_HEIGHT,
+         height:    this.PLATFORM_HEIGHT,
          fillStyle: '#2b950a',
          opacity:   1.0,
          track:     2,
          snail:     true
       },
    ];
+};
 
-// ---------------------------- FUNCTIONS ------------------------------ 
 
-// Drawing..............................................................
+// snailBait.prototype ----------------------------------------------------
 
-function drawRunner() {
-   context.drawImage(runnerImage,
-                     STARTING_RUNNER_LEFT,
-                     calculatePlatformTop(runnerTrack) - RUNNER_HEIGHT);
-}
 
-function drawPlatforms() {
-   var pd, top;
+SnailBait.prototype = {
+   // Drawing..............................................................
 
-   context.save();
-   context.translate(-platformOffset, 0);
+   draw: function (now) {
+      this.setPlatformVelocity();
+      this.setTranslationOffsets();
+
+      this.drawBackground();
+      this.drawPlatforms();
+      this.drawRunner();
+   },
+
+   drawRunner: function () {
+      this.context.drawImage(
+         this.runnerImage,
+         this.STARTING_RUNNER_LEFT,
+         this.calculatePlatformTop(this.runnerTrack) - this.RUNNER_HEIGHT);
+   },
    
-   for (var i=0; i < platformData.length; ++i) {
-      pd = platformData[i];
-      top = calculatePlatformTop(pd.track);
+   drawPlatforms: function () {
+      var pd, top;
 
-      context.lineWidth = PLATFORM_STROKE_WIDTH;
-      context.strokeStyle = PLATFORM_STROKE_STYLE;
-      context.fillStyle = pd.fillStyle;
-      context.globalAlpha = pd.opacity;
-
-      context.strokeRect(pd.left, top, pd.width, pd.height);
-      context.fillRect  (pd.left, top, pd.width, pd.height);
-   }
-   context.restore();
-}
-
-function draw() {
-   setPlatformVelocity();
-   setOffsets();
-
-   drawBackground();
-
-   drawRunner();
-   drawPlatforms();
-}
-
-function setPlatformVelocity() {
-   platformVelocity = bgVelocity * PLATFORM_VELOCITY_MULTIPLIER; 
-}
-
-function setOffsets() {
-   setBackgroundOffset();
-   setPlatformOffset();
-}
-
-function setBackgroundOffset() {
-   var offset = backgroundOffset + bgVelocity/fps;
-
-   if (offset > 0 && offset < background.width) {
-      backgroundOffset = offset;
-   }
-   else {
-      backgroundOffset = 0;
-   }
-}
-
-function setPlatformOffset() {
-   platformOffset += platformVelocity/fps;
-
-   if (platformOffset > 2*background.width) {
-      turnLeft();
-   }
-   else if (platformOffset < 0) {
-      turnRight();
-   }
-}
-
-function drawBackground() {
-   context.translate(-backgroundOffset, 0);
-
-   // Initially onscreen:
-   context.drawImage(background, 0, 0);
-
-   // Initially offscreen:
-   context.drawImage(background, background.width, 0);
-
-   context.translate(backgroundOffset, 0);
-}
-
-function calculateFps(now) {
-   var fps = 1000 / (now - lastAnimationFrameTime);
-   lastAnimationFrameTime = now;
-
-   if (now - lastFpsUpdateTime > 1000) {
-      lastFpsUpdateTime = now;
-      fpsElement.innerHTML = fps.toFixed(0) + ' fps';
-   }
-   return fps; 
-}
-
-function calculatePlatformTop(track) {
-   var top;
-
-   if      (track === 1) { top = TRACK_1_BASELINE; }
-   else if (track === 2) { top = TRACK_2_BASELINE; }
-   else if (track === 3) { top = TRACK_3_BASELINE; }
-
-   return top;
-}
-
-function turnLeft() {
-   bgVelocity = -BACKGROUND_VELOCITY;
-}
-
-function turnRight() {
-   bgVelocity = BACKGROUND_VELOCITY;
-}
+      this.context.save();
+      this.context.translate(-this.platformOffset, 0);
    
-// Animation............................................................
+      for (var i=0; i < this.platformData.length; ++i) {
+         pd = this.platformData[i];
+         top = this.calculatePlatformTop(pd.track);
 
-function animate(now) { 
-   fps = calculateFps(now); 
-   draw();
-   requestNextAnimationFrame(animate);
-}
+         this.context.lineWidth = this.PLATFORM_STROKE_WIDTH;
+         this.context.strokeStyle = this.PLATFORM_STROKE_STYLE;
+         this.context.fillStyle = pd.fillStyle;
+         this.context.globalAlpha = pd.opacity;
 
-// ------------------------- INITIALIZATION ----------------------------
+         this.context.strokeRect(pd.left, top, pd.width, pd.height);
+         this.context.fillRect  (pd.left, top, pd.width, pd.height);
+      }
+      this.context.restore();
+   },
+   
+   setPlatformVelocity: function () {
+      this.platformVelocity = this.bgVelocity * this.PLATFORM_VELOCITY_MULTIPLIER; 
+   },
 
-function initializeImages() {
-   background.src = 'images/background_level_one_dark_red.png';
-   runnerImage.src = 'images/runner.png';
+   setTranslationOffsets: function () {
+      this.setBackgroundTranslationOffset();
+      this.setPlatformTranslationOffset();
+   },
 
-   background.onload = function (e) {
-      startGame();
-   };
-}
+   setBackgroundTranslationOffset: function () {
+      var offset = this.backgroundOffset + this.bgVelocity/this.fps;
+   
+      if (offset > 0 && offset < this.background.width) {
+         this.backgroundOffset = offset;
+      }
+      else {
+         this.backgroundOffset = 0;
+      }
+   },
+   
+   setPlatformTranslationOffset: function () {
+      this.platformOffset += this.platformVelocity / this.fps;
+   },
+   
+   drawBackground: function () {
+      this.context.save();
+   
+      this.context.globalAlpha = 1.0;
+      this.context.translate(-this.backgroundOffset, 0);
+   
+      // Initially onscreen:
+      this.context.drawImage(this.background, 0, 0,
+                        this.background.width, this.background.height);
+   
+      // Initially offscreen:
+      this.context.drawImage(this.background, this.background.width, 0,
+                        this.background.width+1, this.background.height);
+   
+      this.context.restore();
+   },
+   
+   calculateFps: function (now) {
+      var fps;
 
-function startGame() {
-   window.requestNextAnimationFrame(animate);
-}
+      if (this.lastAnimationFrameTime === 0) {
+         this.lastAnimationFrameTime = now;
+         return 60;
+      }
+
+      fps = 1000 / (now - this.lastAnimationFrameTime);
+      this.lastAnimationFrameTime = now;
+   
+      if (now - this.lastFpsUpdateTime > 1000) {
+         this.lastFpsUpdateTime = now;
+         this.fpsElement.innerHTML = fps.toFixed(0) + ' fps';
+      }
+
+      return fps; 
+   },
+   
+   calculatePlatformTop: function (track) {
+      var top;
+   
+      if      (track === 1) { top = this.TRACK_1_BASELINE; }
+      else if (track === 2) { top = this.TRACK_2_BASELINE; }
+      else if (track === 3) { top = this.TRACK_3_BASELINE; }
+
+      return top;
+   },
+
+   turnLeft: function () {
+      this.bgVelocity = -this.BACKGROUND_VELOCITY;
+   },
+
+   turnRight: function () {
+      this.bgVelocity = this.BACKGROUND_VELOCITY;
+   },
+   
+   // Sprites..............................................................
+ 
+   explode: function (sprite, silent) {
+      sprite.exploding = true;
+      this.explosionAnimator.start(sprite, true);  // true means sprite reappears
+   },
+
+   createPlatformSprites: function () {
+      var sprite, pd;  // Sprite, Platform data
+   
+      for (var i=0; i < this.platformData.length; ++i) {
+         pd = this.platformData[i];
+         sprite  = new Sprite('platform-' + i, this.platformArtist);
+
+         sprite.left      = pd.left;
+         sprite.width     = pd.width;
+         sprite.height    = pd.height;
+         sprite.fillStyle = pd.fillStyle;
+         sprite.opacity   = pd.opacity;
+         sprite.track     = pd.track;
+         sprite.button    = pd.button;
+         sprite.pulsate   = pd.pulsate;
+         sprite.power     = pd.power;
+
+         sprite.top = this.calculatePlatformTop(pd.track);
+   
+         this.platforms.push(sprite);
+      }
+   },
+
+   // Toast................................................................
+
+   splashToast: function (text, howLong) {
+      howLong = howLong || this.DEFAULT_TOAST_TIME;
+
+      toast.style.display = 'block';
+      toast.innerHTML = text;
+
+      setTimeout( function (e) {
+         if (snailBait.windowHasFocus) {
+            toast.style.opacity = 1.0; // After toast is displayed
+         }
+      }, 50);
+
+      setTimeout( function (e) {
+         if (snailBait.windowHasFocus) {
+            toast.style.opacity = 0; // Starts CSS3 transition
+         }
+
+         setTimeout( function (e) { 
+            if (snailBait.windowHasFocus) {
+               toast.style.display = 'none'; 
+            }
+         }, 480);
+      }, howLong);
+   },
+
+   // Pause................................................................
+
+   togglePaused: function () {
+      var now = +new Date();
+
+      this.paused = !this.paused;
+   
+      if (this.paused) {
+         this.pauseStartTime = now;
+      }
+      else {
+         this.lastAnimationFrameTime += (now - this.pauseStartTime);
+      }
+   },
+
+   // Animation............................................................
+
+   animate: function (now) { 
+      if (snailBait.paused) {
+         setTimeout( function () {
+            requestNextAnimationFrame(snailBait.animate);
+         }, snailBait.PAUSED_CHECK_INTERVAL);
+      }
+      else {
+         snailBait.fps = snailBait.calculateFps(now); 
+         snailBait.draw(now);
+         requestNextAnimationFrame(snailBait.animate);
+      }
+   },
+
+   // ------------------------- INITIALIZATION ----------------------------
+
+   start: function () {
+      this.turnRight();
+      snailBait.splashToast('Good Luck!', 2000);
+
+      requestNextAnimationFrame(snailBait.animate);
+   },
+
+   initializeImages: function () {
+      this.background.src = 'images/background_level_one_dark_red.png';
+      this.runnerImage.src = 'images/runner.png';
+   
+      this.background.onload = function (e) {
+         snailBait.start();
+      };
+   },
+};
+   
+// Event handlers.......................................................
+   
+window.onkeydown = function (e) {
+   var key = e.keyCode;
+
+   if (key === 80 || (snailBait.paused && key !== 80)) {  // 'p'
+      snailBait.togglePaused();
+   }
+   
+   if (key === 68 || key === 37) { // 'd' or left arrow
+      snailBait.turnLeft();
+   }
+   else if (key === 75 || key === 39) { // 'k'or right arrow
+      snailBait.turnRight();
+   }
+   else if (key === 74) { // 'j'
+      if (snailBait.runnerTrack === 3) {
+         return;
+      }
+
+      snailBait.runnerTrack++;
+   }
+   else if (key === 70) { // 'f'
+      if (snailBait.runnerTrack === 1) {
+         return;
+      }
+
+      snailBait.runnerTrack--;
+   }
+};
+
+window.onblur = function (e) {  // pause if unpaused
+   snailBait.windowHasFocus = false;
+   
+   if (!snailBait.paused) {
+      snailBait.togglePaused();
+   }
+};
+
+window.onfocus = function (e) {  // unpause if paused
+   var originalFont = snailBait.toast.style.fontSize;
+
+   snailBait.windowHasFocus = true;
+
+   if (snailBait.paused) {
+      snailBait.toast.style.font = '128px fantasy';
+
+      snailBait.splashToast('3', 500); // Display 3 for one half second
+
+      setTimeout(function (e) {
+         snailBait.splashToast('2', 500); // Display 2 for one half second
+
+         setTimeout(function (e) {
+            snailBait.splashToast('1', 500); // Display 1 for one half second
+
+            setTimeout(function (e) {
+               if ( snailBait.windowHasFocus) {
+                  snailBait.togglePaused();
+               }
+
+               setTimeout(function (e) { // Wait for '1' to disappear
+                  snailBait.toast.style.fontSize = originalFont;
+               }, 2000);
+            }, 1000);
+         }, 1000);
+      }, 1000);
+   }
+};
 
 // Launch game.........................................................
 
-initializeImages();
-
-setTimeout( function (e) {
-   turnRight();
-}, 1000);
+var snailBait = new SnailBait();
+snailBait.initializeImages();
