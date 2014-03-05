@@ -61,12 +61,32 @@
             <canvas id='game-canvas' width='800' height='400'>
                Your browser does not support HTML5 Canvas.
             </canvas>
+
+            <!-- Instructions........................................-->
+
+            <div id='instructions'>
+               <div class='keys'>
+                  d / k
+                  <div class='explanation'>
+                     move left/right
+                  </div>
+               </div>
+
+               <div class='keys'>
+                  j <div class='explanation'>jump</div>
+               </div>
+
+               <div class='keys'>
+                  p <div class='explanation'>pause</div>
+               </div>
+            </div>
          </div>
       </div>
 
       <!-- JavaScript................................................-->
 
       <script src='js/sprites.js'></script>
+      <script src='js/stopwatch.js'></script>
       <script src='js/behaviors/cycle.js'></script>
       <script src='game.js'></script>
       <script src='js/requestNextAnimationFrame.js'></script>
