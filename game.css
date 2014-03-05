@@ -1,0 +1,50 @@
+
+body {
+   background: teal;
+   background: url('images/background.jpg');
+   margin: 0;
+   padding: 0;
+}
+
+#arena {
+   text-align: center;
+   padding: 5px;
+   width: 805px;
+   height: 445px;
+}
+
+#wrapper {
+   margin: 0 auto;
+   margin-top: 10px;
+   padding: 5px;
+   width: 817px;
+   height: 520px;
+}
+         
+#score {
+   font: 40px fantasy;
+   text-align: center;
+   color: #ff0;
+   text-shadow: 2px 2px 4px rgba(0,0,80,1.0);
+
+   /*border: thin solid white;
+   -webkit-box-shadow: rgba(0,0,0,0.5) 1px 1px 2px;
+   -moz-box-shadow: rgba(0,0,0,0.5) 1px 1px 2px;
+   -o-box-shadow: rgba(0,0,0,0.5) 1px 1px 2px;
+   box-shadow: rgba(0,0,0,0.5) 1px 1px 2px;*/
+}
+
+#game-canvas {
+   position: relative;
+   border: 2px inset rgba(0,0,80,0.62);
+
+   -webkit-transition: opacity 0.5s;
+   -moz-transition: opacity 0.5s;
+   -o-transition: opacity 0.5s;
+   transition: opacity 0.5s;
+
+   -webkit-box-shadow: rgba(0,0,0,0.5) 8px 8px 16px;
+   -moz-box-shadow: rgba(0,0,0,0.5) 8px 8px 16px;
+   -o-box-shadow: rgba(0,0,0,0.5) 8px 8px 16px;
+   box-shadow: rgba(0,0,0,0.5) 8px 8px 16px;
+}
