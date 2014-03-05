@@ -14,7 +14,7 @@ var SnailBait =  function () {
 
    /* Collectively, these constants control Snail Bait's time */
          
-   this.BACKGROUND_VELOCITY = 38,    // pixels/second
+   this.BACKGROUND_VELOCITY = 35,    // pixels/second
    this.RUN_ANIMATION_RATE = 35,     // frames/second
    this.RUNNER_JUMP_DURATION = 1000, // milliseconds
    this.BUTTON_PACE_VELOCITY = 80,   // pixels/second
@@ -47,6 +47,19 @@ var SnailBait =  function () {
    // times as fast as the background.
 
    this.PLATFORM_VELOCITY_MULTIPLIER = 4.35,
+   
+   // Sounds............................................................
+
+   this.COIN_VOLUME = 1.0,
+   this.SOUNDTRACK_VOLUME = 0.12,
+   this.JUMP_WHISTLE_VOLUME = 0.05,
+   this.PLOP_VOLUME = 0.20,
+   this.THUD_VOLUME = 0.20,
+   this.FALLING_WHISTLE_VOLUME = 0.10,
+   this.EXPLOSION_VOLUME = 0.25,
+   this.CHIMES_VOLUME = 1.0,
+
+   // Sprite sheet cells................................................
 
    this.RUNNER_CELLS_WIDTH = 40, // pixels
    this.RUNNER_CELLS_HEIGHT = 52, // pixels
@@ -107,6 +120,28 @@ var SnailBait =  function () {
    
    this.background  = new Image(),
    this.spritesheet = new Image(),
+
+   // Sounds............................................................
+
+   this.soundCheckbox = document.getElementById('sound-checkbox');
+   this.musicCheckbox = document.getElementById('music-checkbox');
+
+   this.soundOn = this.soundCheckbox.checked;
+   this.musicOn = this.musicCheckbox.checked;
+
+   this.audioTracks = [ // 8 tracks is more than enough
+      new Audio(), new Audio(), new Audio(), new Audio(), 
+      new Audio(), new Audio(), new Audio(), new Audio()
+   ],
+
+   this.soundtrack = document.getElementById('soundtrack'),
+   this.chimesSound = document.getElementById('chimes-sound'),
+   this.plopSound = document.getElementById('plop-sound'),
+   this.explosionSound = document.getElementById('explosion-sound'),
+   this.fallingWhistleSound = document.getElementById('whistle-down-sound'),
+   this.coinSound = document.getElementById('coin-sound'),
+   this.jumpWhistleSound = document.getElementById('jump-sound'),
+   this.thudSound = document.getElementById('thud-sound'),
 
    // Time..............................................................
    
@@ -300,7 +335,8 @@ var SnailBait =  function () {
    // Bees..............................................................
 
    this.beeData = [
-      { left: 500,  top: 70 },
+      { left: 190,  top: 250 },
+      { left: 350,  top: 150 },
       { left: 944,  top: this.TRACK_2_BASELINE - 1.25*this.BEE_CELLS_HEIGHT },
       { left: 1600, top: 125 },
       { left: 2225, top: 125 },
@@ -351,7 +387,7 @@ var SnailBait =  function () {
    // Snails............................................................
 
    this.snailData = [
-      { platformIndex: 12 },
+      { platformIndex: 7 },
    ],
    
    // Spritesheet cells................................................
@@ -561,7 +597,6 @@ var SnailBait =  function () {
       ascend: function (sprite) {
          var elapsed = sprite.ascendAnimationTimer.getElapsedTime(),
              deltaH  = elapsed / (sprite.JUMP_DURATION/2) * sprite.JUMP_HEIGHT;
-
          sprite.top = sprite.verticalLaunchPosition - deltaH;
       },
 
@@ -628,6 +663,86 @@ var SnailBait =  function () {
       } 
    },
 
+   // Runner's fall behavior..................................................
+
+   this.fallBehavior = {
+      isOutOfPlay: function (sprite) {
+         return sprite.top > snailBait.TRACK_1_BASELINE;
+      },
+
+      willFallBelowCurrentTrack: function (sprite, deltaY) {
+         return sprite.top + sprite.height + deltaY >
+                snailBait.calculatePlatformTop(sprite.track);
+      },
+
+      fallOnPlatform: function (sprite) {
+         sprite.top = snailBait.calculatePlatformTop(sprite.track) - sprite.height;
+         sprite.stopFalling();
+         snailBait.playSound(snailBait.thudSound);
+      },
+
+      setSpriteVelocity: function (sprite) {
+         var fallingElapsedTime;
+
+         sprite.velocityY = sprite.initialVelocityY + snailBait.GRAVITY_FORCE *
+                            (sprite.fallAnimationTimer.getElapsedTime()/1000) *
+                            snailBait.PIXELS_PER_METER;
+      },
+
+      calculateVerticalDrop: function (sprite, fps) {
+         return sprite.velocityY / fps;
+      },
+
+      isPlatformUnderneath: function (sprite) {
+         return snailBait.isOverPlatform(sprite) !== -1;
+      },
+      
+      execute: function (sprite, time, fps) {
+         var deltaY;
+
+         if (sprite.jumping) {
+            return;
+         }
+
+         if (this.isOutOfPlay(sprite) || sprite.exploding) {
+            if (sprite.falling) {
+               sprite.stopFalling();
+            }
+            return;
+         }
+         
+         if (!sprite.falling) {
+            if (!sprite.exploding && !this.isPlatformUnderneath(sprite)) {
+               sprite.fall();
+            }
+            return;
+         }
+
+         this.setSpriteVelocity(sprite);
+         deltaY = this.calculateVerticalDrop(sprite, fps);
+               
+         if (!this.willFallBelowCurrentTrack(sprite, deltaY)) {
+            sprite.top += deltaY;
+         }
+         else { // will fall below current track
+
+            if (this.isPlatformUnderneath(sprite)) {
+               this.fallOnPlatform(sprite);
+               sprite.stopFalling();
+            }
+            else {
+               sprite.track--;
+
+               sprite.top += deltaY;
+
+               if (sprite.track === 0) {
+                  snailBait.playSound(snailBait.fallingWhistleSound);
+               }
+            }
+         }
+      }
+   },
+
    // Runner's collide behavior...............................................
 
    this.collideBehavior = {
@@ -649,8 +764,7 @@ var SnailBait =  function () {
          return sprite !== otherSprite &&
                 sprite.visible && otherSprite.visible &&
                 !sprite.exploding && !otherSprite.exploding &&
-                otherSprite.left - otherSprite.offset <
-                   sprite.left - sprite.offset + sprite.width;
+                otherSprite.left - otherSprite.offset < sprite.left + sprite.width;
       }, 
 
       didSnailBombCollideWithRunner: function (left, top, right, bottom,
@@ -713,12 +827,23 @@ var SnailBait =  function () {
             // Keep score...
          }
 
+         if ('button' === otherSprite.type && (sprite.falling || sprite.jumping)) {
+            otherSprite.visible = false;
+            snailBait.playSound(snailBait.plopSound);
+         }
+
          if ('coin'  === otherSprite.type    ||
              'sapphire' === otherSprite.type ||
              'ruby' === otherSprite.type     || 
-             'button' === otherSprite.type   ||
              'snail bomb' === otherSprite.type) {
             otherSprite.visible = false;
+
+            if ('coin' === otherSprite.type) {
+               snailBait.playSound(snailBait.coinSound);
+            }
+            if ('sapphire' === otherSprite.type || 'ruby' === otherSprite.type) {
+               snailBait.playSound(snailBait.chimesSound);
+            }
          }
 
          if ('bat' === otherSprite.type   ||
@@ -738,13 +863,13 @@ var SnailBait =  function () {
 
          sprite.stopJumping();
 
-         if (isDescending) { // Collided with platform while descending
-            // land on platform
+         if (isDescending) {
             sprite.track = platform.track; 
             sprite.top = snailBait.calculatePlatformTop(sprite.track) - sprite.height;
          }
          else { // Collided with platform while ascending
-            sprite.fall();
+            snailBait.playSound(snailBait.plopSound);
+            sprite.fall(); 
          }
       }
    };
@@ -822,17 +947,12 @@ var SnailBait =  function () {
                             this.runnerArtist,  // artist
                             [ this.runBehavior, // behaviors
                               this.jumpBehavior,
+                              this.fallBehavior,
                               this.collideBehavior
                             ]); 
 
    this.runner.width = this.RUNNER_CELLS_WIDTH;
    this.runner.height = this.RUNNER_CELLS_HEIGHT;
-
-   this.runner.fall = function () {
-      snailBait.runner.track = 1;
-      snailBait.runner.top = snailBait.calculatePlatformTop(snailBait.runner.track) -
-                             snailBait.runner.height;
-   },
 
    // All sprites.......................................................
    // 
@@ -989,6 +1109,21 @@ SnailBait.prototype = {
    },
 
    equipRunnerForFalling: function () {
+      this.runner.falling = false;
+      this.runner.fallAnimationTimer = new AnimationTimer();
+
+      this.runner.fall = function (initialVelocity) {
+         this.velocityY = initialVelocity || 0;
+         this.initialVelocityY = initialVelocity || 0;
+         this.fallAnimationTimer.start();
+         this.falling = true;
+      }
+
+      this.runner.stopFalling = function () {
+         this.falling = false;
+         this.velocityY = 0;
+         this.fallAnimationTimer.stop();
+      }
    },
    
    equipRunnerForJumping: function () {
@@ -1020,6 +1155,8 @@ SnailBait.prototype = {
          this.jumping = true;
          this.verticalLaunchPosition = this.top;
          this.ascendAnimationTimer.start();
+
+         snailBait.playSound(snailBait.jumpWhistleSound);
       };
    },
    
@@ -1056,6 +1193,7 @@ SnailBait.prototype = {
                
       sprite.exploding = true;
 
+      this.playSound(this.explosionSound);
       this.explosionAnimator.start(sprite, true);  // true means sprite reappears
    },
 
@@ -1109,13 +1247,62 @@ SnailBait.prototype = {
       else {
          this.lastAnimationFrameTime += (now - this.pauseStartTime);
       }
+
+      if (this.paused && this.musicOn) {
+         this.soundtrack.pause();
+      }
+      else if (!this.paused && this.musicOn) {
+         this.soundtrack.play();
+      }
    },
+
+   // Playing sounds.......................................................
+
+   soundIsPlaying: function (sound) {
+      return !sound.ended && sound.currentTime > 0;
+   },
+
+   playSound: function (sound) {
+      var track, index;
+
+      if (this.soundOn) {
+         if (!this.soundIsPlaying(sound)) {
+            sound.play();
+         }
+         else {
+            for (i=0; index < this.audioTracks.length; ++index) {
+               track = this.audioTracks[index];
+            
+               if (!this.soundIsPlaying(track)) {
+                  track.src = sound.currentSrc;
+                  track.load();
+                  track.volume = sound.volume;
+                  track.play();
+
+                  break;
+               }
+            }
+         }              
+      }
+   },
+
+   initializeSounds: function () {
+      this.soundtrack.volume          = this.SOUNDTRACK_VOLUME;
+      this.jumpWhistleSound.volume    = this.JUMP_WHISTLE_VOLUME;
+      this.thudSound.volume           = this.THUD_VOLUME;
+      this.fallingWhistleSound.volume = this.FALLING_WHISTLE_VOLUME;
+      this.chimesSound.volume         = this.CHIMES_VOLUME;
+      this.explosionSound.volume      = this.EXPLOSION_VOLUME;
+      this.coinSound.volume           = this.COIN_VOLUME;
+   },
+
 
    // ------------------------- INITIALIZATION ----------------------------
 
    start: function () {
       this.createSprites();
       this.initializeImages();
+      this.initializeSounds();
       this.equipRunner();
       this.splashToast('Good Luck!');
 
@@ -1135,6 +1322,9 @@ SnailBait.prototype = {
    },
 
    startGame: function () {
+      if (this.musicOn) {
+         this.soundtrack.play();
+      }
       requestNextAnimationFrame(this.animate);
    },
 
@@ -1475,7 +1665,9 @@ window.onkeydown = function (e) {
       snailBait.turnRight();
    }
    else if (key === 74) { // 'j'
-      snailBait.runner.jump();
+      if (!snailBait.runner.jumping && !snailBait.runner.falling) {
+         snailBait.runner.jump();
+      }
    }
 };
 
@@ -1521,3 +1713,20 @@ window.onfocus = function (e) {  // unpause if paused
 
 var snailBait = new SnailBait();
 snailBait.start();
+
+// Sound and music controls............................................
+
+snailBait.soundCheckbox.onchange = function (e) {
+   snailBait.soundOn = snailBait.soundCheckbox.checked;
+};
+
+snailBait.musicCheckbox.onchange = function (e) {
+   snailBait.musicOn = snailBait.musicCheckbox.checked;
+
+   if (snailBait.musicOn) {
+      snailBait.soundtrack.play();
+   }
+   else {
+      snailBait.soundtrack.pause();
+   }
+};
