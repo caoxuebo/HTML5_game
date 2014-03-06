@@ -34,6 +34,15 @@ body {
    box-shadow: rgba(0,0,0,0.5) 1px 1px 2px;*/
 }
 
+#fps {
+	position: absolute;
+	margin-top: -2em;
+	z-index: 1;
+	color: yellow;
+	text-shadow: 1px 1px 1px rgb(0,0,80);
+	font: bold 20px fantasy;
+}
+
 #game-canvas {
    position: relative;
    border: 2px inset rgba(0,0,80,0.62);
@@ -48,3 +57,14 @@ body {
    -o-box-shadow: rgba(0,0,0,0.5) 8px 8px 16px;
    box-shadow: rgba(0,0,0,0.5) 8px 8px 16px;
 }
+
+#console {
+	margin: 0 auto;
+	opacity: 0;
+	padding: 5px;
+	height: 50px;
+	width: 795px;
+	bottom: 20px;
+	border: 2px solid black;
+}
+
