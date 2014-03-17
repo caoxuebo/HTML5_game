@@ -47,6 +47,9 @@ var SnailBait =  function () {
 
    // Constants are listed in alphabetical order from here on out
    
+   this.BACKGROUND_WIDTH = 1102,  // Canvas width
+   this.BACKGROUND_HEIGHT = 400,  // Canvas height
+   
    this.BACKGROUND_VELOCITY = 42,
    this.DEFAULT_TOAST_TIME = 1000,
 
@@ -70,7 +73,6 @@ var SnailBait =  function () {
    this.STARTING_PLATFORM_OFFSET = 0,
    this.STARTING_BACKGROUND_OFFSET = 0,
 
-   this.STARTING_RUNNER_LEFT = 50,
    this.STARTING_PAGEFLIP_INTERVAL = -1,
    this.STARTING_RUNNER_TRACK = 1,
    this.STARTING_RUNNER_VELOCITY = 0,
@@ -95,16 +97,39 @@ var SnailBait =  function () {
 
    // Images............................................................
    
-   this.background  = new Image(),
+   this.backgroundImage  = new Image(),
    this.runnerImage = new Image(),
-/*    this.spritesheet = new Image(), */
+   this.spritesheet = new Image(),
    
-   // Sprite Sheet cells................................................
+   // Sprite Sheet Constants................................................
    
-   this.BACKGROUND_WIDTH = 1102,
-   this.BACKGROUND_HEIGHT = 400,
-   this.RUNNER_CELLS_WIDHT  = 50,
+   this.BACKGROUND_TOP_IN_SPRITESHEET = 590;
+   this.BACKGROUND_WITH_IN_SPRITESHEET = 700,
+   this.BACKGROUND_HEIGHT_IN_SPRITESHEET = 253,
+   
+   this.INITIAL_RUNNER_LEFT = 50,
+   
+   this.BAT_CELLS_HEIGHT = 34, // Bat cell width is not uniform
+   this.BEE_CELLS_WIDTH  = 50,
+   this.BEE_CELLS_HEIGHT = 50,
+   this.BUTTON_CELLS_HEIGHT = 20,
+   this.BUTTON_CELLS_WIDTH  = 31,
+   this.COIN_CELLS_HEIGHT = 30,
+   this.COIN_CELLS_WIDTH = 30,
+   this.EXPLOSION_CELLS_HEIGHT = 62,
+   this.RUBY_CELLS_HEIGHT  = 30,
+   this.RUBY_CELLS_WIDTH = 35,
+   this.SAPPHIRE_CELLS_HEIGHT = 32,
+   this.SAPPHIRE_CELLS_WIDTH = 32,
+   this.SNAIL_BOMB_CELLS_HEIGHT = 20,
+   this.SNAIL_BOMB_CELLS_WIDTH = 20,
+   this.SNAIL_CELLS_WIDTH = 64,
+   this.SNAIL_CELLS_HEIGHT = 34,
+   
+   this.RUNNER_CELLS_WIDTH  = 50,
    this.RUNNER_CELLS_HEIGHT = 54,
+
+   // Spritesheet cells................................................
 
    this.runnerCellsRight = [
       { left: 414, top: 385, width: 47, height: this.RUNNER_CELLS_HEIGHT },
@@ -128,6 +153,146 @@ var SnailBait =  function () {
       { left: 320, top: 305, width: 42, height: this.RUNNER_CELLS_HEIGHT },
       { left: 380, top: 305, width: 35, height: this.RUNNER_CELLS_HEIGHT },
       { left: 425, top: 305, width: 35, height: this.RUNNER_CELLS_HEIGHT },
+   ],
+   
+   this.batCells = [
+      { left: 1,   top: 0, width: 32, height: this.BAT_CELLS_HEIGHT },
+      { left: 38,  top: 0, width: 46, height: this.BAT_CELLS_HEIGHT },
+      { left: 90,  top: 0, width: 32, height: this.BAT_CELLS_HEIGHT },
+      { left: 129, top: 0, width: 46, height: this.BAT_CELLS_HEIGHT },
+   ],
+
+   this.batRedEyeCells = [
+      { left: 185, top: 0, width: 32, height: this.BAT_CELLS_HEIGHT },
+      { left: 222, top: 0, width: 46, height: this.BAT_CELLS_HEIGHT },
+      { left: 273, top: 0, width: 32, height: this.BAT_CELLS_HEIGHT },
+      { left: 313, top: 0, width: 46, height: this.BAT_CELLS_HEIGHT },
+   ],
+   
+   this.beeCells = [
+      { left: 5, top: 234, width: this.BEE_CELLS_WIDTH, height: this.BEE_CELLS_HEIGHT },
+      { left: 75, top: 234, width: this.BEE_CELLS_WIDTH, height: this.BEE_CELLS_HEIGHT },
+      { left: 145, top: 234, width: this.BEE_CELLS_WIDTH, height: this.BEE_CELLS_HEIGHT }
+   ],
+   
+   this.buttonCells = [
+      { left: 2, top: 190, width: this.BUTTON_CELLS_WIDTH, height: this.BUTTON_CELLS_HEIGHT },
+      { left: 45, top: 190, width: this.BUTTON_CELLS_WIDTH, height: this.BUTTON_CELLS_HEIGHT }
+   ],
+
+   this.coinCells = [
+      { left: 2, top: 540, width: this.COIN_CELLS_WIDTH, height: this.COIN_CELLS_HEIGHT }
+   ],
+
+   this.explosionCells = [
+      { left: 1,   top: 48, width: 50, height: this.EXPLOSION_CELLS_HEIGHT },
+      { left: 60,  top: 48, width: 68, height: this.EXPLOSION_CELLS_HEIGHT },
+      { left: 143, top: 48, width: 68, height: this.EXPLOSION_CELLS_HEIGHT },
+      { left: 230, top: 48, width: 68, height: this.EXPLOSION_CELLS_HEIGHT },
+      { left: 305, top: 48, width: 68, height: this.EXPLOSION_CELLS_HEIGHT },
+      { left: 389, top: 48, width: 68, height: this.EXPLOSION_CELLS_HEIGHT },
+      { left: 470, top: 48, width: 68, height: this.EXPLOSION_CELLS_HEIGHT }
+   ],
+
+   this.goldButtonCells = [
+      { left: 88, top: 190, width: this.BUTTON_CELLS_WIDTH, height: this.BUTTON_CELLS_HEIGHT },
+      { left: 130, top: 190, width: this.BUTTON_CELLS_WIDTH, height: this.BUTTON_CELLS_HEIGHT }
+   ],
+
+   this.rubyCells = [
+      { left: 3, top: 135, width: this.RUBY_CELLS_WIDTH, height: this.RUBY_CELLS_HEIGHT },
+      { left: 39, top: 135, width: this.RUBY_CELLS_WIDTH, height: this.RUBY_CELLS_HEIGHT },
+      { left: 76,  top: 135, width: this.RUBY_CELLS_WIDTH, height: this.RUBY_CELLS_HEIGHT },
+      { left: 112, top: 135, width: this.RUBY_CELLS_WIDTH, height: this.RUBY_CELLS_HEIGHT },
+      { left: 148, top: 135, width: this.RUBY_CELLS_WIDTH, height: this.RUBY_CELLS_HEIGHT }
+   ],
+
+   this.sapphireCells = [
+      { left: 185,   top: 135, width: this.SAPPHIRE_CELLS_WIDTH, height: this.SAPPHIRE_CELLS_HEIGHT },
+      { left: 220,  top: 135, width: this.SAPPHIRE_CELLS_WIDTH, height: this.SAPPHIRE_CELLS_HEIGHT },
+      { left: 258,  top: 135, width: this.SAPPHIRE_CELLS_WIDTH, height: this.SAPPHIRE_CELLS_HEIGHT },
+      { left: 294, top: 135, width: this.SAPPHIRE_CELLS_WIDTH, height: this.SAPPHIRE_CELLS_HEIGHT },
+      { left: 331, top: 135, width: this.SAPPHIRE_CELLS_WIDTH, height: this.SAPPHIRE_CELLS_HEIGHT }
+   ],
+
+   this.snailBombCells = [
+      { left: 2, top: 512, width: 30, height: 20 }
+   ],
+
+   this.snailCells = [
+      { left: 142, top: 466, width: this.SNAIL_CELLS_WIDTH, height: this.SNAIL_CELLS_HEIGHT },
+      { left: 75,  top: 466, width: this.SNAIL_CELLS_WIDTH, height: this.SNAIL_CELLS_HEIGHT },
+      { left: 2,   top: 466, width: this.SNAIL_CELLS_WIDTH, height: this.SNAIL_CELLS_HEIGHT },
+   ],
+   
+   // Bats..............................................................
+   
+   this.batData = [
+      { left: 1150, top: this.TRACK_2_BASELINE - this.BAT_CELLS_HEIGHT },
+      { left: 1720, top: this.TRACK_2_BASELINE - 2*this.BAT_CELLS_HEIGHT },
+      { left: 2000, top: this.TRACK_3_BASELINE }, 
+      { left: 2200, top: this.TRACK_3_BASELINE - this.BAT_CELLS_HEIGHT },
+      { left: 2400, top: this.TRACK_3_BASELINE - 2*this.BAT_CELLS_HEIGHT },
+   ],
+   
+   // Bees..............................................................
+
+   this.beeData = [
+      { left: 500,  top: 64 },
+      { left: 944,  top: this.TRACK_2_BASELINE - this.BEE_CELLS_HEIGHT - 30 },
+      { left: 1600, top: 125 },
+      { left: 2225, top: 125 },
+      { left: 2295, top: 275 },
+      { left: 2450, top: 275 },
+   ],
+   
+   // Buttons...........................................................
+
+   this.buttonData = [
+      { platformIndex: 7 },
+      { platformIndex: 12 },
+   ],
+
+   // Coins.............................................................
+
+   this.coinData = [
+      { left: 303,  top: this.TRACK_3_BASELINE - this.COIN_CELLS_HEIGHT }, 
+      { left: 469,  top: this.TRACK_3_BASELINE - 2*this.COIN_CELLS_HEIGHT }, 
+      { left: 600,  top: this.TRACK_1_BASELINE - this.COIN_CELLS_HEIGHT }, 
+      { left: 833,  top: this.TRACK_2_BASELINE - 2*this.COIN_CELLS_HEIGHT }, 
+      { left: 1050, top: this.TRACK_2_BASELINE - 2*this.COIN_CELLS_HEIGHT }, 
+      { left: 1500, top: this.TRACK_1_BASELINE - 2*this.COIN_CELLS_HEIGHT }, 
+      { left: 1670, top: this.TRACK_2_BASELINE - 2*this.COIN_CELLS_HEIGHT }, 
+      { left: 1870, top: this.TRACK_1_BASELINE - 2*this.COIN_CELLS_HEIGHT }, 
+      { left: 1930, top: this.TRACK_1_BASELINE - 2*this.COIN_CELLS_HEIGHT }, 
+      { left: 2200, top: this.TRACK_3_BASELINE - 3*this.COIN_CELLS_HEIGHT }, 
+   ],
+
+   // Rubies............................................................
+
+   this.rubyData = [
+      { left: 200,  top: this.TRACK_1_BASELINE - this.RUBY_CELLS_HEIGHT },
+      { left: 880,  top: this.TRACK_2_BASELINE - this.RUBY_CELLS_HEIGHT },
+      { left: 1100, top: this.TRACK_2_BASELINE - 2*this.SAPPHIRE_CELLS_HEIGHT }, 
+      { left: 1475, top: this.TRACK_1_BASELINE - this.RUBY_CELLS_HEIGHT },
+   ],
+
+   // Sapphires.........................................................
+
+   this.sapphireData = [
+      { left: 680,  top: this.TRACK_1_BASELINE - this.SAPPHIRE_CELLS_HEIGHT },
+      { left: 1700, top: this.TRACK_2_BASELINE - this.SAPPHIRE_CELLS_HEIGHT },
+      { left: 2056, top: this.TRACK_2_BASELINE - 3*this.SAPPHIRE_CELLS_HEIGHT/2 },
+      { left: 2333, top: this.TRACK_2_BASELINE - this.SAPPHIRE_CELLS_HEIGHT },
+   ],
+
+
+   // sprites coordinats data on canvas.................................
+
+   // Snails............................................................
+
+   this.snailData = [
+      { platformIndex: 1 },
    ],
 
    // Time..............................................................
@@ -346,25 +511,33 @@ SnailBait.prototype = {
       this.setOffsets();
 
       this.drawBackground();
-      this.drawRunner();
+/*       this.drawRunner(); */
       
       this.updateSprites();
       this.drawSprites(); // only platforms for now
    },
    
    drawBackground: function () {
+         
       this.context.save();
    
       this.context.globalAlpha = 1.0;
       this.context.translate(-this.backgroundOffset, 0);
    
-      // Initially onscreen:
-      this.context.drawImage(this.background, 0, 0,
-                        this.background.width, this.background.height);
+      // Initially onscreen in canvas windows:
+      this.context.drawImage(this.spritesheet,  // image to draw from
+      						0, this.BACKGROUND_TOP_IN_SPRITESHEET, // X, Y starting point for clip
+	  						this.BACKGROUND_WITH_IN_SPRITESHEET, this.BACKGROUND_HEIGHT_IN_SPRITESHEET, // X, Y end point for clip
+	  						0, 0, // X, Y position in canvas to start drawing from
+	  						this.BACKGROUND_WIDTH, this.BACKGROUND_HEIGHT); // drawing image to this width and height
+                        
    
-      // Initially offscreen:
-      this.context.drawImage(this.background, this.background.width, 0,
-                        this.background.width+1, this.background.height);
+      // Initially offscreen to the right of the canvas:
+      this.context.drawImage(this.spritesheet, 
+      						 0, this.BACKGROUND_TOP_IN_SPRITESHEET, 
+	  						 this.BACKGROUND_WITH_IN_SPRITESHEET, this.BACKGROUND_HEIGHT_IN_SPRITESHEET,
+	  						 this.BACKGROUND_WIDTH, 0, 
+	  						 this.BACKGROUND_WIDTH, this.BACKGROUND_HEIGHT);
    
       this.context.restore();
    },
@@ -411,7 +584,7 @@ SnailBait.prototype = {
    setBackgroundOffset: function() {
 	   var offset = this.backgroundOffset + this.bgVelocity/this.fps;
 	   
-	   if (offset > 0 && offset < this.background.width) {
+	   if (offset > 0 && offset < this.BACKGROUND_WIDTH) {
 		   this.backgroundOffset = offset;
 	   }
 	   else {
@@ -466,10 +639,16 @@ SnailBait.prototype = {
 
    turnLeft: function () {
       this.bgVelocity = -this.BACKGROUND_VELOCITY;
+      this.runner.runAnimationRate = this.RUN_ANIMATION_RATE;
+      this.runnerArtist.cells = this.runnerCellsLeft;
+      this.runner.direction = this.LEFT;
    },
 
    turnRight: function () {
       this.bgVelocity = this.BACKGROUND_VELOCITY;
+      this.runner.runAnimationRate = this.RUN_ANIMATION_RATE;
+      this.runnerArtist.cells = this.runnerCellsRight;
+      this.runner.direction = this.RIGHT;
    },
    
    // Sprites..............................................................
@@ -540,8 +719,24 @@ SnailBait.prototype = {
    
    createSprites : function() {
 	   this.createPlatformSprites();
-/* 	   this.createRunnerSprite(); */
+	   this.createRunnerSprite();
+	   
+	   this.createBatSprites();
+	   this.createBeeSprites();
+	   this.createButtonSprites();
+	   this.createCoinSprites();
+/* 	   this.createRubySprites(); */
+/* 	   this.createSapphireSprites(); */
+/* 	   this.createSnailSprites(); */
+	   this.initializeSprites();
+	   
 	   this.addSpritesToSpriteArray(); // platforms only for now
+   },
+   
+   putSpriteOnPlatform: function(sprite, platformSprite) {
+      sprite.top  = platformSprite.top - sprite.height;
+      sprite.left = platformSprite.left;
+      sprite.platform = platformSprite;
    },
    
    createPlatformSprites : function() {
@@ -567,16 +762,195 @@ SnailBait.prototype = {
 	   }
    },
    
-/*
    createRunnerSprite: function() {
 	   this.runner = new Sprite('runner', this.runnerArtist);
 	   
 	   this.runner.width = this.RUNNER_CELLS_WIDTH;
 	   this.runner.height = this.RUNNER_CELLS_HEIGHT; 
+	   this.runner.left = this.INITIAL_RUNNER_LEFT;
+	   this.runner.top = 272;
+	   
 	   
 	   this.sprites = [ this.runner ]; 
    },
-*/
+   
+   createBatSprites: function () {
+      var bat,
+          batArtist = new SpriteSheetArtist(this.spritesheet, this.batCells),
+		  redEyeBatArtist = new SpriteSheetArtist(this.spritesheet, this.batRedEyeCells);
+
+      for (var i = 0; i < this.batData.length; ++i) {
+         if (i % 2 === 0) bat = new Sprite('bat', batArtist);
+         else             bat = new Sprite('bat', redEyeBatArtist);
+
+         bat.width = this.BAT_CELLS_WIDTH;
+         bat.height = this.BAT_CELLS_HEIGHT;
+
+         this.bats.push(bat);
+      }
+   },
+
+   createBeeSprites: function () {
+      var bee,
+          beeArtist = new SpriteSheetArtist(this.spritesheet, this.beeCells);
+
+      for (var i = 0; i < this.beeData.length; ++i) {
+         bee = new Sprite('bee', beeArtist);
+
+         bee.width = this.BEE_CELLS_WIDTH;
+         bee.height = this.BEE_CELLS_HEIGHT;
+
+         this.bees.push(bee);
+      }
+   },
+
+   createButtonSprites: function () {
+      var button,
+          buttonArtist = new SpriteSheetArtist(this.spritesheet,
+                                               this.buttonCells),
+      goldButtonArtist = new SpriteSheetArtist(this.spritesheet,
+                                               this.goldButtonCells);
+
+      for (var i = 0; i < this.buttonData.length; ++i) {
+         if (i === this.buttonData.length - 1) {
+            button = new Sprite('button',
+                                 goldButtonArtist,
+                                 [ this.paceBehavior ]);
+         }
+         else {
+            button = new Sprite('button',
+                                 buttonArtist, 
+                                 [ this.paceBehavior ]);
+         }
+
+         button.width = this.BUTTON_CELLS_WIDTH;
+         button.height = this.BUTTON_CELLS_HEIGHT;
+
+         button.velocityX = this.BUTTON_PACE_VELOCITY;
+         button.direction = this.RIGHT;
+
+         this.buttons.push(button);
+      }
+   },
+   
+   createCoinSprites: function () {
+      var coin,
+          coinArtist = new SpriteSheetArtist(this.spritesheet, this.coinCells);
+   
+      for (var i = 0; i < this.coinData.length; ++i) {
+         coin = new Sprite('coin', coinArtist);
+
+         coin.width = this.COIN_CELLS_WIDTH;
+         coin.height = this.COIN_CELLS_HEIGHT;
+
+         this.coins.push(coin);
+      }
+   },
+   
+   createSapphireSprites: function () {
+      var sapphire,
+          sapphireArtist = new SpriteSheetArtist(this.spritesheet, this.sapphireCells);
+   
+      for (var i = 0; i < this.sapphireData.length; ++i) {
+         sapphire = new Sprite('sapphire', sapphireArtist, [ new Cycle(100, 2000) ]);
+
+         sapphire.width = this.SAPPHIRE_CELLS_WIDTH;
+         sapphire.height = this.SAPPHIRE_CELLS_HEIGHT;
+
+         this.sapphires.push(sapphire);
+      }
+   },
+   
+   createRubySprites: function () {
+      var ruby,
+          rubyArtist = new SpriteSheetArtist(this.spritesheet, this.rubyCells);
+   
+      for (var i = 0; i < this.rubyData.length; ++i) {
+         ruby = new Sprite('ruby', rubyArtist, [ new Cycle(100, 500) ]);
+
+         ruby.width = this.RUBY_CELLS_WIDTH;
+         ruby.height = this.RUBY_CELLS_HEIGHT;
+         
+         this.rubies.push(ruby);
+      }
+   },
+   
+   createSnailSprites: function () {
+      var snail,
+          snailArtist = new SpriteSheetArtist(this.spritesheet, this.snailCells);
+   
+      for (var i = 0; i < this.snailData.length; ++i) {
+         snail = new Sprite('snail',
+                            snailArtist,
+                            [ this.paceBehavior,
+                              this.snailShootBehavior,
+                              new Cycle(300, 1500)
+                            ]);
+
+         snail.width  = this.SNAIL_CELLS_WIDTH;
+         snail.height = this.SNAIL_CELLS_HEIGHT;
+
+         snail.velocityX = this.SNAIL_PACE_VELOCITY;
+         snail.direction = this.RIGHT;
+         
+         this.snails.push(snail);
+      }
+   },
+   
+   positionSprites: function (sprites, spriteData) {
+      var sprite;
+
+      for (var i = 0; i < sprites.length; ++i) {
+         sprite = sprites[i];
+
+         if (spriteData[i].platformIndex) { 
+            this.putSpriteOnPlatform(sprite, this.platforms[spriteData[i].platformIndex]);
+         }
+         else {
+            sprite.top  = spriteData[i].top;
+            sprite.left = spriteData[i].left;
+         }
+      }
+   },
+   
+   initializeSprites: function() {
+      
+      for (var i=0; i < this.sprites.length; ++i) {
+	      this.sprites[i].offset = 0;
+	      this.sprites[i].visible = true;
+      }
+      
+      this.positionSprites(this.bats,       this.batData);
+      this.positionSprites(this.bees,       this.beeData);
+      this.positionSprites(this.buttons,    this.buttonData);
+      this.positionSprites(this.coins,      this.coinData);
+/*       this.positionSprites(this.rubies,     this.rubyData); */
+/*       this.positionSprites(this.sapphires,  this.sapphireData); */
+/*       this.positionSprites(this.snails,     this.snailData); */
+
+      this.armSnails();
+   },
+   
+   armSnails: function () {
+      var snail,
+          snailBombArtist = new SpriteSheetArtist(this.spritesheet, this.snailBombCells);
+
+      for (var i=0; i < this.snails.length; ++i) {
+         snail = this.snails[i];
+         snail.bomb = new Sprite('snail bomb', snailBombArtist, [ this.snailBombMoveBehavior ]);
+
+         snail.bomb.width  = snailBait.SNAIL_BOMB_CELLS_WIDTH;
+         snail.bomb.height = snailBait.SNAIL_BOMB_CELLS_HEIGHT;
+
+         snail.bomb.top = snail.top + snail.bomb.height/2;
+         snail.bomb.left = snail.left + snail.bomb.width/2;
+         snail.bomb.visible = false;
+
+         snail.bomb.snail = snail;  // Snail bombs maintain a reference to their snail
+
+         this.sprites.push(snail.bomb);
+      }
+   },
    
    addSpritesToSpriteArray : function() {
 		for (var i=0; i < this.platforms.length; ++i) {
@@ -637,14 +1011,14 @@ SnailBait.prototype = {
    },
 
    initializeImages: function () {
-      this.background.src = 'images/background_level_one_dark_red.png';
-      this.runnerImage.src = 'images/runner.png';
-/*       this.spritesheet.src = 'images/spritesheet.png'; */
+/*       this.runnerImage.src = 'images/runner.png'; */
+      this.spritesheet.src = 'images/mySpritesheet.png';
    
-      this.background.onload = function (e) {
+      this.spritesheet.onload = function (e) {
          snailBait.start();
       };
    },
+   
 };
    
 // Event handlers.......................................................
