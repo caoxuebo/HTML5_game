@@ -52,6 +52,8 @@ var SnailBait =  function () {
    
    this.BACKGROUND_VELOCITY = 42,
    this.DEFAULT_TOAST_TIME = 1000,
+   
+   this.INITIAL_RUNNER_TRACK = 1,
 
    this.PAUSED_CHECK_INTERVAL = 200,
 
@@ -67,6 +69,7 @@ var SnailBait =  function () {
    this.PLATFORM_VELOCITY_MULTIPLIER = 4.35,
 
    this.RUNNER_HEIGHT = 43,
+   this.RUN_ANIMATION_RATE = 30,
    
    this.STARTING_BACKGROUND_VELOCITY = 0,
 
@@ -97,7 +100,6 @@ var SnailBait =  function () {
 
    // Images............................................................
    
-   this.backgroundImage  = new Image(),
    this.spritesheet = new Image(),
    
    // Sprite Sheet Constants................................................
@@ -224,6 +226,8 @@ var SnailBait =  function () {
       { left: 2,   top: 466, width: this.SNAIL_CELLS_WIDTH, height: this.SNAIL_CELLS_HEIGHT },
    ],
    
+   // sprites coordinats data on canvas.................................
+
    // Bats..............................................................
    
    this.batData = [
@@ -284,9 +288,6 @@ var SnailBait =  function () {
       { left: 2056, top: this.TRACK_2_BASELINE - 3*this.SAPPHIRE_CELLS_HEIGHT/2 },
       { left: 2333, top: this.TRACK_2_BASELINE - this.SAPPHIRE_CELLS_HEIGHT },
    ],
-
-
-   // sprites coordinats data on canvas.................................
 
    // Snails............................................................
 
@@ -461,7 +462,26 @@ var SnailBait =  function () {
       },
    ],
    
-   // Sprite...........................................................
+   // Sprites behaviours.................................................
+   
+   this.runBehaviour = {
+	   
+	   execute: function (sprite, now, fps, context, lastAnimationFrameTime) {
+		   if (sprite.runAnimationRate === 0) {
+			   return;
+		   }
+		   if (sprite.lastAdvanceTime === 0) {  // skip first time
+			   sprite.lastAdvanceTime = now;
+		   }
+		   else if (now - sprite.lastAdvanceTime > 1000 / sprite.runAnimationRate) {
+			   sprite.artist.advance();
+			   sprite.lastAdvanceTime = now;
+		   }
+	   }
+   },
+   
+   // Sprites arrays.....................................................
+   
    this.bats			= [],
    this.bees			= [],
    this.buttons			= [],
@@ -511,7 +531,7 @@ SnailBait.prototype = {
 
       this.drawBackground();
       
-      this.updateSprites();
+      this.updateSprites(now);
       this.drawSprites(); // only platforms for now
    },
    
@@ -643,12 +663,38 @@ SnailBait.prototype = {
       this.runnerArtist.cells = this.runnerCellsRight;
       this.runner.direction = this.RIGHT;
    },
-   
-   // Sprites..............................................................
- 
+    
    explode: function (sprite, silent) {
       sprite.exploding = true;
       this.explosionAnimator.start(sprite, true);  // true means sprite reappears
+   },
+   
+   execute: function(sprite, time, fps) {
+         if ( ! sprite.jumping) {
+            return;
+         }
+
+         if (this.isJumpOver(sprite)) {
+            sprite.jumping = false;
+            return;
+         }
+
+         if (this.isAscending(sprite)) {
+            if ( ! this.isDoneAscending(sprite)) { 
+            	this.ascend(sprite); 
+            }
+            else {
+	            this.finishAscent(sprite);
+            }
+         } 
+         else if (this.isDescending(sprite)) {
+         	if ( !this.isDoneDescending(sprite)) {
+	         	this.descend(sprite);
+         	} 
+		   	else {
+			   	this.finishDescent(sprite);
+		   	}
+         }
    },
 
    // Toast................................................................
@@ -756,12 +802,15 @@ SnailBait.prototype = {
    },
    
    createRunnerSprite: function() {
-	   this.runner = new Sprite('runner', this.runnerArtist);
+	   this.runner = new Sprite('runner', this.runnerArtist, [this.runBehaviour]);
 	   
-	   this.runner.width = this.RUNNER_CELLS_WIDTH;
-	   this.runner.height = this.RUNNER_CELLS_HEIGHT; 
-	   this.runner.left = this.INITIAL_RUNNER_LEFT;
-	   this.runner.top = 272;
+	   this.runner.runAnimationRate = this.RUN_ANIMATION_RATE;
+	   this.runner.width 	= this.RUNNER_CELLS_WIDTH;
+	   this.runner.height 	= this.RUNNER_CELLS_HEIGHT; 
+	   this.runner.left 	= this.INITIAL_RUNNER_LEFT;
+	   this.runner.track 	= this.INITIAL_RUNNER_TRACK;
+	   this.runner.top 		= 272;
+	   this.runner.lastAdvanceTime = 0;
 	   
 	   
 	   this.sprites = [ this.runner ]; 
@@ -978,19 +1027,6 @@ SnailBait.prototype = {
    
    isSpriteInGameCanvas: function(sprite) {
 	   // returns true or false
-	   console.log("Sprite+Width= " + sprite.left + sprite.width);
-	   console.log("SpriteOffset= " + sprite.offset);
-	   if (sprite.left + sprite.width > sprite.offset) {
-		   console.log("true");
-	   } else {
-		   console.log("false");
-	   }
-	   console.log("CanvasWidth= " + this.canvas.width);
-	   if (sprite.left < sprite.offset + this.canvas.width) {
-		   console.log("true");
-	   } else {
-		   console.log("false");
-	   }
 	   return sprite.left + sprite.width > sprite.offset && sprite.left < sprite.offset + this.canvas.width;
    },
    

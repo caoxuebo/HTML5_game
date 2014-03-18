@@ -83,11 +83,11 @@ Sprite.prototype = {
 	
 	update: function(time, fps, context, lastAnimationFrame) {
 		for (var i = 0; i < this.behaviors.length; ++i) {
-			if (this.behaviours[i] === undefined) {
+			if (this.behaviors[i] === undefined) {
 				return;
 			}
 			
-			this.behaviours[i].execute(this, time, fps, context, lastAnimationFrame);
+			this.behaviors[i].execute(this, time, fps, context, lastAnimationFrame);
 		}
 	},
 	
