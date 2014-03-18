@@ -1,4 +1,5 @@
-
+// Sprite artists...................................................
+   
 var SpriteSheetArtist = function (spritesheet, cells) {
    this.cells = cells;
    this.spritesheet = spritesheet;

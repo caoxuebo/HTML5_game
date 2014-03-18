@@ -98,7 +98,6 @@ var SnailBait =  function () {
    // Images............................................................
    
    this.backgroundImage  = new Image(),
-   this.runnerImage = new Image(),
    this.spritesheet = new Image(),
    
    // Sprite Sheet Constants................................................
@@ -228,11 +227,11 @@ var SnailBait =  function () {
    // Bats..............................................................
    
    this.batData = [
-      { left: 1150, top: this.TRACK_2_BASELINE - this.BAT_CELLS_HEIGHT },
-      { left: 1720, top: this.TRACK_2_BASELINE - 2*this.BAT_CELLS_HEIGHT },
-      { left: 2000, top: this.TRACK_3_BASELINE }, 
-      { left: 2200, top: this.TRACK_3_BASELINE - this.BAT_CELLS_HEIGHT },
-      { left: 2400, top: this.TRACK_3_BASELINE - 2*this.BAT_CELLS_HEIGHT },
+      { left: 70, 	top: this.TRACK_2_BASELINE - this.BAT_CELLS_HEIGHT,   width: 34 },
+      { left: 610, 	top: this.TRACK_3_BASELINE - this.BAT_CELLS_HEIGHT,   width: 46 },
+      { left: 115, 	top: this.TRACK_2_BASELINE - 3*this.BAT_CELLS_HEIGHT, width: 35 }, 
+      { left: 1720, top: this.TRACK_2_BASELINE - this.BAT_CELLS_HEIGHT,   width: 50 },
+      { left: 1960, top: this.TRACK_3_BASELINE - 2*this.BAT_CELLS_HEIGHT, width: 34 },
    ],
    
    // Bees..............................................................
@@ -462,7 +461,7 @@ var SnailBait =  function () {
       },
    ],
    
-   // Sprites...........................................................
+   // Sprite...........................................................
    this.bats			= [],
    this.bees			= [],
    this.buttons			= [],
@@ -511,7 +510,6 @@ SnailBait.prototype = {
       this.setOffsets();
 
       this.drawBackground();
-/*       this.drawRunner(); */
       
       this.updateSprites();
       this.drawSprites(); // only platforms for now
@@ -540,11 +538,6 @@ SnailBait.prototype = {
 	  						 this.BACKGROUND_WIDTH, this.BACKGROUND_HEIGHT);
    
       this.context.restore();
-   },
-   
-   drawRunner: function() {
-   		this.context.drawImage(this.runnerImage, this.STARTING_RUNNER_LEFT,
-   				this.calculatePlatformTop(this.runnerTrack) - this.runnerImage.height);
    },
    
    updateSprites: function (now) {
@@ -783,7 +776,7 @@ SnailBait.prototype = {
          if (i % 2 === 0) bat = new Sprite('bat', batArtist);
          else             bat = new Sprite('bat', redEyeBatArtist);
 
-         bat.width = this.BAT_CELLS_WIDTH;
+         bat.width = this.batData[i].width;
          bat.height = this.BAT_CELLS_HEIGHT;
 
          this.bats.push(bat);
@@ -806,21 +799,15 @@ SnailBait.prototype = {
 
    createButtonSprites: function () {
       var button,
-          buttonArtist = new SpriteSheetArtist(this.spritesheet,
-                                               this.buttonCells),
-      goldButtonArtist = new SpriteSheetArtist(this.spritesheet,
-                                               this.goldButtonCells);
+          buttonArtist = new SpriteSheetArtist(this.spritesheet, this.buttonCells),
+      goldButtonArtist = new SpriteSheetArtist(this.spritesheet, this.goldButtonCells);
 
       for (var i = 0; i < this.buttonData.length; ++i) {
          if (i === this.buttonData.length - 1) {
-            button = new Sprite('button',
-                                 goldButtonArtist,
-                                 [ this.paceBehavior ]);
+            button = new Sprite('button', goldButtonArtist, [ this.paceBehavior ]);
          }
          else {
-            button = new Sprite('button',
-                                 buttonArtist, 
-                                 [ this.paceBehavior ]);
+            button = new Sprite('button', buttonArtist, [ this.paceBehavior ]);
          }
 
          button.width = this.BUTTON_CELLS_WIDTH;
@@ -880,10 +867,7 @@ SnailBait.prototype = {
           snailArtist = new SpriteSheetArtist(this.spritesheet, this.snailCells);
    
       for (var i = 0; i < this.snailData.length; ++i) {
-         snail = new Sprite('snail',
-                            snailArtist,
-                            [ this.paceBehavior,
-                              this.snailShootBehavior,
+         snail = new Sprite('snail', snailArtist,[ this.paceBehavior, this.snailShootBehavior,
                               new Cycle(300, 1500)
                             ]);
 
@@ -994,8 +978,20 @@ SnailBait.prototype = {
    
    isSpriteInGameCanvas: function(sprite) {
 	   // returns true or false
-	   return sprite.left + sprite.width > sprite.offset && 
-	   		  sprite.left < sprite.offset + this.canvas.width;
+	   console.log("Sprite+Width= " + sprite.left + sprite.width);
+	   console.log("SpriteOffset= " + sprite.offset);
+	   if (sprite.left + sprite.width > sprite.offset) {
+		   console.log("true");
+	   } else {
+		   console.log("false");
+	   }
+	   console.log("CanvasWidth= " + this.canvas.width);
+	   if (sprite.left < sprite.offset + this.canvas.width) {
+		   console.log("true");
+	   } else {
+		   console.log("false");
+	   }
+	   return sprite.left + sprite.width > sprite.offset && sprite.left < sprite.offset + this.canvas.width;
    },
    
    isSpriteInView: function(sprite) {
@@ -1011,7 +1007,6 @@ SnailBait.prototype = {
    },
 
    initializeImages: function () {
-/*       this.runnerImage.src = 'images/runner.png'; */
       this.spritesheet.src = 'images/mySpritesheet.png';
    
       this.spritesheet.onload = function (e) {
