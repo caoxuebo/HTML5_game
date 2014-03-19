@@ -931,8 +931,8 @@ SnailBait.prototype = {
 		  redEyeBatArtist = new SpriteSheetArtist(this.spritesheet, this.batRedEyeCells);
 
       for (var i = 0; i < this.batData.length; ++i) {
-         if (i % 2 === 0) bat = new Sprite('bat', batArtist);
-         else             bat = new Sprite('bat', redEyeBatArtist);
+         if (i % 2 === 0) bat = new Sprite('bat', batArtist, [ new CycleBehavior(200, 400)]);
+         else             bat = new Sprite('bat', redEyeBatArtist, [ new CycleBehavior(200, 600)]);
 
          bat.width = this.batData[i].width;
          bat.height = this.BAT_CELLS_HEIGHT;
@@ -946,7 +946,7 @@ SnailBait.prototype = {
           beeArtist = new SpriteSheetArtist(this.spritesheet, this.beeCells);
 
       for (var i = 0; i < this.beeData.length; ++i) {
-         bee = new Sprite('bee', beeArtist);
+         bee = new Sprite('bee', beeArtist, [ new CycleBehavior(200, 300)]);
 
          bee.width = this.BEE_CELLS_WIDTH;
          bee.height = this.BEE_CELLS_HEIGHT;
