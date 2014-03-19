@@ -26,7 +26,6 @@ SpriteSheetArtist.prototype = {
    }
 };
 
-
 var Sprite = function (type, artist, behaviors) {
 	this.artist 	= artist;
 	this.type		= type || '';
@@ -81,15 +80,15 @@ Sprite.prototype = {
 		context.restore();
 	}, // end draw()
 	
-	update: function(time, fps, context, lastAnimationFrame) {
-		for (var i = 0; i < this.behaviors.length; ++i) {
-			if (this.behaviors[i] === undefined) {
-				return;
-			}
-			
-			this.behaviors[i].execute(this, time, fps, context, lastAnimationFrame);
-		}
-	},
+	update: function (time, fps) {
+      for (var i = 0; i < this.behaviors.length; ++i) {
+         if (this.behaviors[i] === undefined) { // Modified while looping?
+            return;
+         }
+
+         this.behaviors[i].execute(this, time, fps);
+      }
+   },
 	
 	calculateCollisionRectangle : function() {
 		return {
