@@ -53,8 +53,6 @@ var SnailBait =  function () {
    this.BACKGROUND_VELOCITY = 42,
    this.DEFAULT_TOAST_TIME = 1000,
    
-   this.INITIAL_RUNNER_TRACK = 1,
-
    this.PAUSED_CHECK_INTERVAL = 200,
 
    this.PLATFORM_HEIGHT = 8,  
@@ -68,8 +66,6 @@ var SnailBait =  function () {
 
    this.PLATFORM_VELOCITY_MULTIPLIER = 4.35,
 
-   this.RUNNER_HEIGHT = 43,
-   
    this.STARTING_BACKGROUND_VELOCITY = 0,
 
    this.STARTING_PLATFORM_OFFSET = 0,
@@ -113,13 +109,20 @@ var SnailBait =  function () {
    
    this.spritesheet = new Image(),
    
-   // Sprite Sheet Constants................................................
+   // Runner values ....................................................
+   
+   this.INITIAL_RUNNER_TRACK = 1,
+   this.INITIAL_RUNNER_LEFT = 50,
+   this.RUNNER_HEIGHT = 43,
+   this.RUNNER_JUMP_DURATION = 1000,
+   this.RUNNER_JUMP_HEIGHT = 120,
+
+   
+   // Sprite Sheet Constants............................................
    
    this.BACKGROUND_TOP_IN_SPRITESHEET = 590;
    this.BACKGROUND_WITH_IN_SPRITESHEET = 700,
    this.BACKGROUND_HEIGHT_IN_SPRITESHEET = 253,
-   
-   this.INITIAL_RUNNER_LEFT = 50,
    
    this.BAT_CELLS_HEIGHT = 34, // Bat cell width is not uniform
    this.BEE_CELLS_WIDTH  = 50,
@@ -499,18 +502,80 @@ var SnailBait =  function () {
    },
    
    this.jumpBehavior = {
+   
+   	   // Ascent...............................................................
+
+      isAscending: function (sprite) {
+         return sprite.ascendStopwatch.isRunning();
+      },
+      
+      ascend: function (sprite) {
+         var elapsed = sprite.ascendStopwatch.getElapsedTime(),
+             deltaH  = elapsed / (sprite.JUMP_DURATION/2) * sprite.JUMP_HEIGHT;
+
+         sprite.top = sprite.verticalLaunchPosition - deltaH;
+      },
+
+      isDoneAscending: function (sprite) {
+         return sprite.ascendStopwatch.getElapsedTime() > sprite.JUMP_DURATION/2;
+      },
+      
+      finishAscent: function (sprite) {
+         sprite.jumpApex = sprite.top;
+         sprite.ascendStopwatch.stop();
+         sprite.descendStopwatch.start();
+
+		 sprite.track++;
+		 sprite.top = snailBait.calculatePlatformTop(sprite.track) - sprite.height;
+      },
+      
+      // Descents.............................................................
+
+      isDescending: function (sprite) {
+         return sprite.descendStopwatch.isRunning();
+      },
+
+      descend: function (sprite, verticalVelocity, fps) {
+         var elapsed = sprite.descendStopwatch.getElapsedTime(),
+             deltaH  = elapsed / (sprite.JUMP_DURATION/2) * sprite.JUMP_HEIGHT;
+
+         sprite.top = sprite.jumpApex + deltaH;
+      },
+      
+      isDoneDescending: function (sprite) {
+         return sprite.descendStopwatch.getElapsedTime() > sprite.JUMP_DURATION/2;
+      },
+
+      finishDescent: function (sprite) {
+         sprite.top = sprite.verticalLaunchPosition;
+         sprite.jumping = false;
+         sprite.runAnimationRate = snailBait.RUN_ANIMATION_RATE;
+
+         sprite.descendStopwatch.stop();
+      },
+      
+      // Execute..............................................................
+      
 	   execute: function(sprite, time, fps) {
 		   if (!sprite.jumping) {
 			   return;
 		   }
-		   console.log('jumping');
-		   if (snailBait.runner.track === 3) {
-			   return;
-		   }
-		   snailBait.runner.track++;
-		   snailBait.putSpriteOnTrack(snailBait.runner);
-		   
-		   sprite.jumping = false;
+		  
+		  if (this.isAscending(sprite)) {
+			  if (!this.isDoneAscending(sprite, time)) {
+				  this.ascend(sprite, time);
+			  }
+			  else {
+				  this.finishAscent(sprite, time);
+			  }
+		  } else if (this.isDescending(sprite)) {
+			  if (!this.isDoneDescending(sprite)) {
+				  this.descend(sprite);
+			  }
+			  else {
+				  this.finishDescent(sprite);
+			  }
+		  }
 	   }
    },
    
@@ -760,34 +825,6 @@ SnailBait.prototype = {
    explode: function (sprite, silent) {
       sprite.exploding = true;
       this.explosionAnimator.start(sprite, true);  // true means sprite reappears
-   },
-   
-   execute: function(sprite, time, fps) {
-         if ( ! sprite.jumping) {
-            return;
-         }
-
-         if (this.isJumpOver(sprite)) {
-            sprite.jumping = false;
-            return;
-         }
-
-         if (this.isAscending(sprite)) {
-            if ( ! this.isDoneAscending(sprite)) { 
-            	this.ascend(sprite); 
-            }
-            else {
-	            this.finishAscent(sprite);
-            }
-         } 
-         else if (this.isDescending(sprite)) {
-         	if ( !this.isDoneDescending(sprite)) {
-	         	this.descend(sprite);
-         	} 
-		   	else {
-			   	this.finishDescent(sprite);
-		   	}
-         }
    },
 
    // Toast................................................................
@@ -1158,14 +1195,25 @@ SnailBait.prototype = {
    
    equipRunnerForJumping: function () {
 
+	  this.runner.JUMP_DURATION = this.RUNNER_JUMP_DURATION; // miliseconds
+	  this.runner.JUMP_HEIGHT = this.RUNNER_JUMP_HEIGHT;
+	  
+	  this.runner.jumping = false;
+	  this.runner.ascendStopwatch = new Stopwatch();
+	  this.runner.descendStopwatch = new Stopwatch();
+	  
       this.runner.jump = function () {
          this.jumping = true;
+         this.runAnimationRate = 0;
+         this.verticalLaunchPosition = this.top;
+         
+         this.ascendStopwatch.start();
       };
    },
    
    equipRunner: function () {
          
-      this.runner.runAnimationRate = this.RUN_ANIMATION_INITIAL_RATE;
+      this.runner.runAnimationRate = this.RUN_ANIMATION_RATE;
    
       this.equipRunnerForJumping();
    },
@@ -1192,7 +1240,9 @@ window.onkeydown = function (e) {
       snailBait.turnRight();
    }
    else if (key === 74) { // 'j'
-      snailBait.runner.jump();
+      if (!snailBait.runner.jumping) {
+	      snailBait.runner.jump();
+      }
    }
    else if (key === 70) { // 'f'
       if (snailBait.runner.track === 1) {
