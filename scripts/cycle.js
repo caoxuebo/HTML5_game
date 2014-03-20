@@ -23,5 +23,4 @@ CycleBehavior.prototype = {
          this.lastAdvance = time;
       }
    }
-	
 };

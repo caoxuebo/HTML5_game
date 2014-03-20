@@ -323,6 +323,7 @@ var SnailBait =  function () {
    // Scrolling direction...............................................
 
    this.scrollingDirection = this.STATIONARY,
+   this.noScroll = false,
    
    // Translation offsets...............................................
 
@@ -495,6 +496,22 @@ var SnailBait =  function () {
             this.lastAdvanceTime = time;
          }
       }
+   },
+   
+   this.jumpBehavior = {
+	   execute: function(sprite, time, fps) {
+		   if (!sprite.jumping) {
+			   return;
+		   }
+		   console.log('jumping');
+		   if (snailBait.runner.track === 3) {
+			   return;
+		   }
+		   snailBait.runner.track++;
+		   snailBait.putSpriteOnTrack(snailBait.runner);
+		   
+		   sprite.jumping = false;
+	   }
    },
    
    this.paceBehavior = {
@@ -672,6 +689,7 @@ SnailBait.prototype = {
    },
    
    setOffsets: function () {
+   	  if (this.noScroll) return;
       this.setBackgroundOffset();
       this.setSpriteOffset();
    },
@@ -911,14 +929,14 @@ SnailBait.prototype = {
    },
    
    createRunnerSprite: function() {
-	   this.runner = new Sprite('runner', this.runnerArtist, [this.runBehaviour]);
+	   this.runner = new Sprite('runner', this.runnerArtist, [this.runBehaviour, this.jumpBehavior]);
 	   
 	   this.runner.runAnimationRate = this.RUN_ANIMATION_RATE;
 	   this.runner.width 	= this.RUNNER_CELLS_WIDTH;
 	   this.runner.height 	= this.RUNNER_CELLS_HEIGHT; 
 	   this.runner.left 	= this.INITIAL_RUNNER_LEFT;
 	   this.runner.track 	= this.INITIAL_RUNNER_TRACK;
-	   this.runner.top 		= 272;
+	   this.runner.top 		= this.calculatePlatformTop(this.runner.track) - this.RUNNER_CELLS_HEIGHT;
 	   this.runner.lastAdvanceTime = 0;
 	   
 	   
@@ -1114,10 +1132,17 @@ SnailBait.prototype = {
    isSpriteInView: function(sprite) {
 	   return this.isSpriteInGameCanvas(sprite);
    },
+   
+   putSpriteOnTrack: function(sprite) {
+      sprite.top  = this.calculatePlatformTop(sprite.track) - this.RUNNER_CELLS_HEIGHT;
+   },
 
    // ------------------------- INITIALIZATION ----------------------------
 
    start: function () {
+      
+      this.equipRunner();
+      
       snailBait.splashToast('Good Luck!', 2000);
 
       requestNextAnimationFrame(snailBait.animate);
@@ -1131,12 +1156,30 @@ SnailBait.prototype = {
       };
    },
    
-};
+   equipRunnerForJumping: function () {
+
+      this.runner.jump = function () {
+         this.jumping = true;
+      };
+   },
+   
+   equipRunner: function () {
+         
+      this.runner.runAnimationRate = this.RUN_ANIMATION_INITIAL_RATE;
+   
+      this.equipRunnerForJumping();
+   },
+   
+}; // end snailBait.prototype
    
 // Event handlers.......................................................
    
 window.onkeydown = function (e) {
    var key = e.keyCode;
+   
+   if (key === 83) { // 's'
+	   snailBait.noScroll = !snailBait.noScroll;
+   }
 
    if (key === 80 || (snailBait.paused && key !== 80)) {  // 'p'
       snailBait.togglePaused();
@@ -1149,18 +1192,16 @@ window.onkeydown = function (e) {
       snailBait.turnRight();
    }
    else if (key === 74) { // 'j'
-      if (snailBait.runnerTrack === 3) {
-         return;
-      }
-
-      snailBait.runnerTrack++;
+      snailBait.runner.jump();
    }
    else if (key === 70) { // 'f'
-      if (snailBait.runnerTrack === 1) {
+      if (snailBait.runner.track === 1) {
          return;
       }
 
-      snailBait.runnerTrack--;
+      snailBait.runner.track--;
+      console.log('falling');
+      snailBait.putSpriteOnTrack(snailBait.runner);
    }
 };
 
@@ -1208,7 +1249,9 @@ var snailBait = new SnailBait();
 snailBait.initializeImages();
 snailBait.createSprites();
 
+/*
 setTimeout(function() {
 	snailBait.turnRight();
 }, 1000);
+*/
 
