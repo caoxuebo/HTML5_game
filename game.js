@@ -100,6 +100,8 @@ var SnailBait =  function () {
    this.SAPPHIRE_SPARKLE_INTERVAL = 300,
    
    this.SNAIL_BOMB_VELOCITY = 80,
+   
+   this.COIN_BOUNCE_DURATON = 2000,
 
    // Fps indicator.....................................................
    
@@ -344,6 +346,7 @@ var SnailBait =  function () {
    // Platforms.........................................................
 
    this.platformData = [
+      
       // Screen 1.......................................................
       
       {
@@ -371,7 +374,7 @@ var SnailBait =  function () {
          fillStyle: 'rgb(250,0,0)',
          opacity:   1.0,
          track:     3,
-         pulsate:   false
+         pulsate:   true,
       },
 
       {  left:      633,
@@ -957,6 +960,10 @@ SnailBait.prototype = {
 		   sprite.pulsate   = pd.pulsate;
 		   
 		   sprite.top = this.calculatePlatformTop(pd.track);
+		   
+		   if (sprite.pulsate) {
+           	  sprite.behaviors = [ new PulseBehavior(1000, 0.5) ];
+	       }
    
            this.platforms.push(sprite);
 	   }
@@ -1039,6 +1046,8 @@ SnailBait.prototype = {
 
          coin.width = this.COIN_CELLS_WIDTH;
          coin.height = this.COIN_CELLS_HEIGHT;
+         
+/*          coin.behaviors.push(); */
 
          this.coins.push(coin);
       }
@@ -1051,7 +1060,8 @@ SnailBait.prototype = {
       for (var i = 0; i < this.sapphireData.length; ++i) {
          sapphire = new Sprite('sapphire', sapphireArtist, [ new CycleBehavior(
          													this.SAPPHIRE_SPARKLE_DURATION, 
-         													this.SAPPHIRE_SPARKLE_INTERVAL)]);
+         													this.SAPPHIRE_SPARKLE_INTERVAL),
+         													new BounceBehavior()]);
 
          sapphire.width = this.SAPPHIRE_CELLS_WIDTH;
          sapphire.height = this.SAPPHIRE_CELLS_HEIGHT;
@@ -1068,7 +1078,10 @@ SnailBait.prototype = {
       for (var i = 0; i < this.rubyData.length; ++i) {
          ruby = new Sprite('ruby', rubyArtist, [ new CycleBehavior(
          											this.RUBY_SPARKLE_DURATION, 
-         											this.RUBY_SPARKLE_INTERVAL)]);
+         											this.RUBY_SPARKLE_INTERVAL),
+         										 new BounceBehavior(80 * i * 10,
+		 										 					50 * i * 10,
+		 										 					60 + Math.random() * 40)]);
 
          ruby.width = this.RUBY_CELLS_WIDTH;
          ruby.height = this.RUBY_CELLS_HEIGHT;
