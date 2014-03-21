@@ -40,31 +40,35 @@
 AnimationTimer = function (duration, transducer)  {
    this.transducer = transducer;
 
-   if (duration !== undefined) this.duration = duration;
-   else                        this.duration = 1000;
+   if (duration !== undefined) {
+	   this.duration = duration;
+   }
+   else {
+	   this.duration = 1000;
+   }                       
 
    this.stopwatch = new Stopwatch();
 };
 
 AnimationTimer.prototype = {
-       start: function () { this.stopwatch.start();           },
-        stop: function () { this.stopwatch.stop();            },
-       pause: function () { this.stopwatch.pause();           },
-     unpause: function () { this.stopwatch.unpause();         },
-    isPaused: function () { return this.stopwatch.isPaused(); },
-   isRunning: function () { return this.stopwatch.running;    },
-       reset: function () { this.stopwatch.reset();           },
+       start: function (now) { this.stopwatch.start(now);           },
+        stop: function (now) { this.stopwatch.stop(now);            },
+       pause: function (now) { this.stopwatch.pause(now);           },
+     unpause: function (now) { this.stopwatch.unpause(now);         },
+    isPaused: function () 	 { return this.stopwatch.isPaused(); 	},
+   isRunning: function (now) { return this.stopwatch.running;       },
+       reset: function (now) { this.stopwatch.reset(now);           },
 
-   isExpired: function () {
-      return this.stopwatch.getElapsedTime() > this.duration;
+   isExpired: function (now) {
+      return this.stopwatch.getElapsedTime(now) > this.duration;
    },
 
-   getRealElapsedTime: function () {
-      return this.stopwatch.getElapsedTime();
+   getRealElapsedTime: function (now) {
+      return this.stopwatch.getElapsedTime(now);
    },
    
-   getElapsedTime: function () {
-      var elapsedTime = this.stopwatch.getElapsedTime(),
+   getElapsedTime: function (now) {
+      var elapsedTime = this.stopwatch.getElapsedTime(now),
           percentComplete = elapsedTime / this.duration;
       
       if (this.transducer == undefined || percentComplete === 0 || percentComplete > 1) {

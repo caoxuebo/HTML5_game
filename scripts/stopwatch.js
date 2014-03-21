@@ -52,37 +52,38 @@ Stopwatch = function ()  {
 // stopped.
 
 Stopwatch.prototype = {
-   start: function () {
-      this.startTime = +new Date();
+   start: function (now) {
+      this.startTime = now ? now : +new Date();
+      this.elapsedTime = undefined;
       this.running = true;
       this.totalPausedTime = 0;
       this.startPause = 0;
    },
 
-   stop: function () {
+   stop: function (now) {
       if (this.paused) {
          this.unpause();
       }
       
-      this.elapsed = (+new Date()) - this.startTime - this.totalPausedTime;
+      this.elapsed = (now ? now : +new Date()) - this.startTime - this.totalPausedTime;
       this.running = false;
    },
 
-   pause: function () {
+   pause: function (now) {
       if (this.paused) {
          return;
       }
 
-      this.startPause = +new Date(); 
+      this.startPause = now ? now : +new Date(); 
       this.paused = true;
    },
 
-   unpause: function () {
+   unpause: function (now) {
       if (!this.paused) {
          return;
       }
 
-      this.totalPausedTime += (+new Date()) - this.startPause; 
+      this.totalPausedTime += (now ? now : +new Date()) - this.startPause; 
       this.startPause = 0;
       this.paused = false;
    },
@@ -91,9 +92,9 @@ Stopwatch.prototype = {
       return this.paused;
    },
    
-   getElapsedTime: function () {
+   getElapsedTime: function (now) {
       if (this.running) {
-         return (+new Date()) - this.startTime - this.totalPausedTime;
+         return (now ? now : +new Date()) - this.startTime - this.totalPausedTime;
       }
       else {
         return this.elapsed;
@@ -108,9 +109,9 @@ Stopwatch.prototype = {
       return this.running;
    },
 
-   reset: function() {
+   reset: function(now) {
      this.elapsed = 0;
-     this.startTime = +new Date();
+     this.startTime = now ? now : +new Date();
      this.running = false;
      this.totalPausedTime = 0;
      this.startPause = 0;

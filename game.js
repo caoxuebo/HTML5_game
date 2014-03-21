@@ -28,18 +28,18 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
 */
-// snailBait constructor --------------------------------------------
+// ! snailBait constructor --------------------------------------------
 
 var SnailBait =  function () {
    this.canvas = document.getElementById('game-canvas'),
    this.context = this.canvas.getContext('2d'),
 
-   // HTML elements........................................................
+   // ! HTML elements........................................................
    
    this.fpsElement = document.getElementById('fps'),
    this.toast = document.getElementById('toast'),
 
-   // Constants............................................................
+   // ! Constants............................................................
 
    this.LEFT = 1,
    this.RIGHT = 2,
@@ -75,7 +75,7 @@ var SnailBait =  function () {
    this.STARTING_RUNNER_TRACK = 1,
    this.STARTING_RUNNER_VELOCITY = 0,
 
-   // Paused............................................................
+   // ! Paused............................................................
    
    this.paused = false,
    this.pauseStartTime = 0,
@@ -83,13 +83,13 @@ var SnailBait =  function () {
 
    this.windowHasFocus = true,
 
-   // Track baselines...................................................
+   // ! Track baselines...................................................
 
    this.TRACK_1_BASELINE = 323,
    this.TRACK_2_BASELINE = 223,
    this.TRACK_3_BASELINE = 123,
 
-   // Animations...................................................
+   // ! Animation Constants................................................
    
    this.RUN_ANIMATION_RATE = 30,
    
@@ -103,24 +103,15 @@ var SnailBait =  function () {
    
    this.COIN_BOUNCE_DURATON = 2000,
 
-   // Fps indicator.....................................................
+   // ! Fps indicator.....................................................
    
    this.fpsToast = document.getElementById('fps'),
 
-   // Images............................................................
+   // ! Images............................................................
    
    this.spritesheet = new Image(),
    
-   // Runner values ....................................................
-   
-   this.INITIAL_RUNNER_TRACK = 1,
-   this.INITIAL_RUNNER_LEFT = 50,
-   this.RUNNER_HEIGHT = 43,
-   this.RUNNER_JUMP_DURATION = 1000,
-   this.RUNNER_JUMP_HEIGHT = 120,
-
-   
-   // Sprite Sheet Constants............................................
+   // ! Sprite Sheet Constants............................................
    
    this.BACKGROUND_TOP_IN_SPRITESHEET = 590;
    this.BACKGROUND_WITH_IN_SPRITESHEET = 700,
@@ -145,8 +136,17 @@ var SnailBait =  function () {
    
    this.RUNNER_CELLS_WIDTH  = 50,
    this.RUNNER_CELLS_HEIGHT = 54,
+   
+   // ! Runner values ....................................................
+   
+   this.INITIAL_RUNNER_TRACK = 1,
+   this.INITIAL_RUNNER_LEFT = 50,
+   this.RUNNER_HEIGHT = 43,
+   this.RUNNER_JUMP_DURATION = 1000,
+   this.RUNNER_JUMP_HEIGHT = 120,
 
-   // Spritesheet cells................................................
+   
+   // ! Spritesheet cells................................................
 
    this.runnerCellsRight = [
       { left: 414, top: 385, width: 47, height: this.RUNNER_CELLS_HEIGHT },
@@ -242,7 +242,7 @@ var SnailBait =  function () {
       { left: 2,   top: 466, width: this.SNAIL_CELLS_WIDTH, height: this.SNAIL_CELLS_HEIGHT },
    ],
    
-   // sprites coordinats data on canvas.................................
+   // ! SpritesData coordinats on canvas................................
 
    // Bats..............................................................
    
@@ -311,31 +311,34 @@ var SnailBait =  function () {
       { platformIndex: 1 },
    ],
 
-   // Time..............................................................
+   // ! Time..............................................................
    
    this.lastAnimationFrameTime = 0,
    this.lastFpsUpdateTime = 0,
    this.fps = 60,
+   
+   this.timeSystem = new TimeSystem(); // See timeSystem.js
+   this.timeFactor = 1.0; // 1.0 is normal; 0.5 is half-speed; etc.
 
-   // Runner track......................................................
+   // ! Runner track......................................................
 
    this.runnerTrack = this.STARTING_RUNNER_TRACK,
 
-   // Pageflip timing for runner........................................
+   // ! Pageflip timing for runner........................................
 
    this.runnerPageflipInterval = this.STARTING_PAGEFLIP_INTERVAL,
    
-   // Scrolling direction...............................................
+   // ! Scrolling direction...............................................
 
    this.scrollingDirection = this.STATIONARY,
    this.noScroll = false,
    
-   // Translation offsets...............................................
+   // ! Translation offsets...............................................
 
    this.backgroundOffset = this.STARTING_BACKGROUND_OFFSET,
    this.platformOffset = this.STARTING_PLATFORM_OFFSET,
 
-   // Velocities........................................................
+   // ! Velocities........................................................
 
    this.bgVelocity = this.STARTING_BACKGROUND_VELOCITY,
    this.platformVelocity,
@@ -343,7 +346,7 @@ var SnailBait =  function () {
    this.BUTTON_PACE_VELOCITY = 80,
    this.SNAIL_PACE_VELOCITY = 50,
 
-   // Platforms.........................................................
+   // ! PlatformData coordinate on canvas.................................
 
    this.platformData = [
       
@@ -482,7 +485,8 @@ var SnailBait =  function () {
       },
    ],
    
-   // Sprites behaviors.................................................
+   
+   // ! Sprites behaviors.................................................
    
    this.runBehaviour = {
 	   
@@ -505,28 +509,51 @@ var SnailBait =  function () {
    },
    
    this.jumpBehavior = {
-   
-   	   // Ascent...............................................................
+   	  
+   	  pause: function (sprite, now) {
+         if (sprite.ascendAnimationTimer.isRunning()) {
+            sprite.ascendAnimationTimer.pause(now);
+         }
+         else if (!sprite.descendAnimationTimer.isRunning()) {
+            sprite.descendAnimationTimer.pause(now);
+         }
+      },
 
-      isAscending: function (sprite) {
-         return sprite.ascendAnimationTimer.isRunning();
+      unpause: function (sprite, now) {
+         if (sprite.ascendAnimationTimer.isRunning()) {
+            sprite.ascendAnimationTimer.unpause(now);
+         }
+         else if (sprite.descendAnimationTimer.isRunning()) {
+            sprite.descendAnimationTimer.unpause(now);
+         }
+      },
+
+      jumpIsOver: function (sprite, now) {
+         return ! sprite.ascendAnimationTimer.isRunning(now) &&
+                ! sprite.descendAnimationTimer.isRunning(now);
       },
       
-      ascend: function (sprite) {
-         var elapsed = sprite.ascendAnimationTimer.getElapsedTime(),
+   	  // Ascent...............................................................
+
+      isAscending: function (sprite, now) {
+         return sprite.ascendAnimationTimer.isRunning(now);
+      },
+      
+      ascend: function (sprite, now) {
+         var elapsed = sprite.ascendAnimationTimer.getElapsedTime(now),
              deltaH  = elapsed / (sprite.JUMP_DURATION/2) * sprite.JUMP_HEIGHT;
 
          sprite.top = sprite.verticalLaunchPosition - deltaH;
       },
 
-      isDoneAscending: function (sprite) {
-         return sprite.ascendAnimationTimer.getElapsedTime() > sprite.JUMP_DURATION/2;
+      isDoneAscending: function (sprite, now) {
+         return sprite.ascendAnimationTimer.getElapsedTime(now) > sprite.JUMP_DURATION/2;
       },
       
-      finishAscent: function (sprite) {
+      finishAscent: function (sprite, now) {
          sprite.jumpApex = sprite.top;
-         sprite.ascendAnimationTimer.stop();
-         sprite.descendAnimationTimer.start();
+         sprite.ascendAnimationTimer.stop(now);
+         sprite.descendAnimationTimer.start(now);
 
 		 sprite.track++;
 		 sprite.top = snailBait.calculatePlatformTop(sprite.track) - sprite.height;
@@ -534,46 +561,46 @@ var SnailBait =  function () {
       
       // Descents.............................................................
 
-      isDescending: function (sprite) {
-         return sprite.descendAnimationTimer.isRunning();
+      isDescending: function (sprite, now) {
+         return sprite.descendAnimationTimer.isRunning(now);
       },
 
-      descend: function (sprite, verticalVelocity, fps) {
-         var elapsed = sprite.descendAnimationTimer.getElapsedTime(),
+      descend: function (sprite, now) {
+         var elapsed = sprite.descendAnimationTimer.getElapsedTime(now),
              deltaH  = elapsed / (sprite.JUMP_DURATION/2) * sprite.JUMP_HEIGHT;
 
          sprite.top = sprite.jumpApex + deltaH;
       },
       
-      isDoneDescending: function (sprite) {
-         return sprite.descendAnimationTimer.getElapsedTime() > sprite.JUMP_DURATION/2;
+      isDoneDescending: function (sprite, now) {
+         return sprite.descendAnimationTimer.getElapsedTime(now) > sprite.JUMP_DURATION/2;
       },
 
-      finishDescent: function (sprite) {
+      finishDescent: function (sprite, now) {
          sprite.top = sprite.verticalLaunchPosition;
-         sprite.stopJumping();
+         sprite.stopJumping(now);
       },
       
       // Execute..............................................................
       
-	   execute: function(sprite, time, fps) {
+	   execute: function(sprite, now, fps) {
 		   if (!sprite.jumping) {
 			   return;
 		   }
 		  
-		  if (this.isAscending(sprite)) {
-			  if (!this.isDoneAscending(sprite, time)) {
-				  this.ascend(sprite, time);
+		  if (this.isAscending(sprite, now)) {
+			  if (!this.isDoneAscending(sprite, now)) {
+				  this.ascend(sprite, now);
 			  }
 			  else {
-				  this.finishAscent(sprite, time);
+				  this.finishAscent(sprite, now);
 			  }
-		  } else if (this.isDescending(sprite)) {
-			  if (!this.isDoneDescending(sprite)) {
-				  this.descend(sprite);
+		  } else if (this.isDescending(sprite, now)) {
+			  if (!this.isDoneDescending(sprite, now)) {
+				  this.descend(sprite, now);
 			  }
 			  else {
-				  this.finishDescent(sprite);
+				  this.finishDescent(sprite, now);
 			  }
 		  }
 	   }
@@ -581,7 +608,7 @@ var SnailBait =  function () {
    
    this.paceBehavior = {
    
-	  execute: function (sprite, time, fps) {
+	  execute: function (sprite, now, fps) {
          var sRight = sprite.left + sprite.width,
              pRight = sprite.platform.left + sprite.platform.width,
              pixelsToMove = sprite.velocityX / fps;
@@ -617,7 +644,7 @@ var SnailBait =  function () {
    
    this.snailShootBehavior = {
 	   
-	   execute: function (sprite, time, fps) {
+	   execute: function (sprite, now, fps) {
          var bomb = sprite.bomb;
 
          if (!snailBait.isSpriteInView(sprite)) {
@@ -633,7 +660,7 @@ var SnailBait =  function () {
    
    this.snailBombMoveBehavior = {
 	   
-	   execute: function(sprite, time, fps) {  // sprite is the bomb
+	   execute: function(sprite, now, fps) {  // sprite is the bomb
          if (sprite.visible && snailBait.isSpriteInView(sprite)) {
             sprite.left -= snailBait.SNAIL_BOMB_VELOCITY / fps;
          }
@@ -644,7 +671,7 @@ var SnailBait =  function () {
       }
    },
    
-   // Sprites arrays.....................................................
+   // ! Sprites arrays.....................................................
    
    this.bats			= [],
    this.bees			= [],
@@ -658,7 +685,7 @@ var SnailBait =  function () {
    // finally an array to hold all the sprite arrays
    this.sprites			= [],
    
-   // Sprite artists...................................................
+   // ! Sprite artists...................................................
 
    this.runnerArtist = new SpriteSheetArtist(this.spritesheet, this.runnerCellsRight),
 
@@ -683,20 +710,21 @@ var SnailBait =  function () {
 };
 
 
-// snailBait.prototype ----------------------------------------------------
+// ! ------------------------ SNAILBAIT PROTOTYPE ----------------------------
 
 
 SnailBait.prototype = {
-   // Drawing..............................................................
+   
+   // ! Drawing..............................................................
 
    draw: function (now) {
-      this.setPlatformVelocity();
-      this.setOffsets();
+      this.setPlatformVelocity(now);
+      this.setOffsets(now);
 
       this.drawBackground();
       
       this.updateSprites(now);
-      this.drawSprites(); // only platforms for now
+      this.drawSprites(now); // only platforms for now
    },
    
    drawBackground: function () {
@@ -750,7 +778,7 @@ SnailBait.prototype = {
    },
    
    setPlatformVelocity: function () {
-      this.platformVelocity = this.bgVelocity * this.PLATFORM_VELOCITY_MULTIPLIER; 
+      this.platformVelocity = this.bgVelocity * this.PLATFORM_VELOCITY_MULTIPLIER * this.timeFactor; 
    },
    
    setOffsets: function () {
@@ -760,7 +788,9 @@ SnailBait.prototype = {
    },
    
    setBackgroundOffset: function() {
-	   var offset = this.backgroundOffset + this.bgVelocity/this.fps;
+	   var offset = this.backgroundOffset 
+	   				+ this.bgVelocity/this.fps
+	   				* this.timeFactor;
 	   
 	   if (offset > 0 && offset < this.BACKGROUND_WIDTH) {
 		   this.backgroundOffset = offset;
@@ -787,7 +817,7 @@ SnailBait.prototype = {
    },
    
    calculateFps: function (now) {
-      var fps = 1000 / (now - this.lastAnimationFrameTime);
+      var fps = 1000 / (now - this.lastAnimationFrameTime) * this.timeFactor;
       this.lastAnimationFrameTime = now;
 
       if (now - this.lastFpsUpdateTime > 1000) {
@@ -827,7 +857,7 @@ SnailBait.prototype = {
       this.explosionAnimator.start(sprite, true);  // true means sprite reappears
    },
 
-   // Toast................................................................
+   // ! Toast................................................................
 
    splashToast: function (text, howLong) {
       howLong = howLong || this.DEFAULT_TOAST_TIME;
@@ -854,24 +884,53 @@ SnailBait.prototype = {
       }, howLong);
    },
 
-   // Pause................................................................
+   // ! Pause................................................................
 
+   togglePausedStateOfAllBehaviors: function (now) {
+      
+      var behavior;
+   
+      for (var i=0; i < this.sprites.length; ++i) { 
+         sprite = this.sprites[i];
+
+         for (var j=0; j < sprite.behaviors.length; ++j) { 
+            behavior = sprite.behaviors[j];
+
+            if (this.paused) {
+               if (behavior.pause) {
+                  behavior.pause(sprite, now);
+               }
+            }
+            else {
+               if (behavior.unpause) {
+                  behavior.unpause(sprite, now);
+               }
+            }
+         }
+      }
+   },
+   
    togglePaused: function () {
-      var now = +new Date();
+      var now = snailBait.timeSystem.calculateGameTime();
 
       this.paused = !this.paused;
+      this.togglePausedStateOfAllBehaviors(now);
    
       if (this.paused) {
          this.pauseStartTime = now;
+      	 this.splashToast('paused', 1000);
       }
       else {
          this.lastAnimationFrameTime += (now - this.pauseStartTime);
       }
    },
 
-   // Animation............................................................
+   // ! Animation............................................................
 
    animate: function (now) { 
+   
+   	  now = snailBait.timeSystem.calculateGameTime();
+   	  
       if (snailBait.paused) {
          setTimeout( function () {
             requestNextAnimationFrame(snailBait.animate);
@@ -880,14 +939,15 @@ SnailBait.prototype = {
       else {
          snailBait.fps = snailBait.calculateFps(now); 
          snailBait.draw(now);
+         snailBait.lastAnimationFrameTime = now; // used in extended execute behavior !
          requestNextAnimationFrame(snailBait.animate);
       }
    },
    
-   // ------------------------- SPRITE CREATION ---------------------------
+   // ! ------------------------- SPRITE CREATION ---------------------------
    
-   createSprites : function() {
-	   this.createPlatformSprites();
+   createSprites : function(now) {
+	   this.createPlatformSprites(now);
 	   this.createRunnerSprite();
 	   
 	   this.createBatSprites();
@@ -1169,7 +1229,7 @@ SnailBait.prototype = {
 		}
    },
 
-   // ------------------------- UTILITIES ---------------------------------
+   // ! ------------------------- UTILITIES ---------------------------------
    
    isSpriteInGameCanvas: function(sprite) {
 	   // returns true or false
@@ -1184,15 +1244,23 @@ SnailBait.prototype = {
       sprite.top  = this.calculatePlatformTop(sprite.track) - this.RUNNER_CELLS_HEIGHT;
    },
 
-   // ------------------------- INITIALIZATION ----------------------------
+   // ! ------------------------- INITIALIZATION ----------------------------
 
    start: function () {
       
       this.equipRunner();
       
-      snailBait.splashToast('Good Luck!', 2000);
+      this.splashToast('Good Luck!', 2000);
 
       requestNextAnimationFrame(snailBait.animate);
+   },
+   
+   setTimeRate: function(rate) {
+	   this.timeFactor = rate;
+	   
+	   this.timeSystem.setTransducer(function(percent) {
+		   return percent * snailBait.timeFactor;
+	   });
    },
 
    initializeImages: function () {
@@ -1223,13 +1291,13 @@ SnailBait.prototype = {
          this.runAnimationRate = 0;
          this.verticalLaunchPosition = this.top;
          
-         this.ascendAnimationTimer.start();
+         this.ascendAnimationTimer.start(snailBait.timeSystem.calculateGameTime()); // now
       };
       
       this.runner.stopJumping = function() {
 	      this.jumping = false;
-	      this.ascendAnimationTimer.stop();
-	      this.descendAnimationTimer.stop();
+	      this.ascendAnimationTimer.stop(snailBait.timeSystem.calculateGameTime()); // now
+	      this.descendAnimationTimer.stop(snailBait.timeSystem.calculateGameTime()); // now
 	      this.runAnimationRate = snailBait.RUN_ANIMATION_RATE;
       };
    },
@@ -1243,7 +1311,7 @@ SnailBait.prototype = {
    
 }; // end snailBait.prototype
    
-// Event handlers.......................................................
+// ! ------------------------- EVENT HANDLERS ----------------------------
    
 window.onkeydown = function (e) {
    var key = e.keyCode;
@@ -1266,15 +1334,6 @@ window.onkeydown = function (e) {
       if (!snailBait.runner.jumping) {
 	      snailBait.runner.jump();
       }
-   }
-   else if (key === 70) { // 'f'
-      if (snailBait.runner.track === 1) {
-         return;
-      }
-
-      snailBait.runner.track--;
-      console.log('falling');
-      snailBait.putSpriteOnTrack(snailBait.runner);
    }
 };
 
@@ -1321,6 +1380,7 @@ window.onfocus = function (e) {  // unpause if paused
 var snailBait = new SnailBait();
 snailBait.initializeImages();
 snailBait.createSprites();
+snailBait.setTimeRate(0.25); // 1.0 is normal; 0.5 is half-speed; etc.
 
 /*
 setTimeout(function() {
