@@ -145,7 +145,6 @@ var SnailBait =  function () {
    this.RUNNER_JUMP_DURATION = 1000,
    this.RUNNER_JUMP_HEIGHT = 120,
 
-   
    // ! Spritesheet cells................................................
 
    this.runnerCellsRight = [
@@ -739,7 +738,7 @@ var SnailBait =  function () {
 	   			'bee' 	=== otherSprite.type) {
 		   			snailBait.explode(sprite);
 		   			snailBait.shake();
-		   			snailBait.looseLife();
+		   			snailBait.loseLife();
 	   		}
 	   		
 	   		if ('snail' === otherSprite.type) {
@@ -1046,8 +1045,20 @@ SnailBait.prototype = {
 	   console.log('shake');	   
    },
    
-   looseLife: function() {
+   loseLife: function() {
 	   console.log('life lost');
+   },
+   
+   revealCollisionRectangles: function() {
+	   for (var i=0; i < this.sprites.length; ++i) {
+		   this.sprites[i].drawCollisionRectangle = true;
+	   }
+   },
+   
+   hideCollisionRectangles: function() {
+	   for (var i=0; i < this.sprites.length; ++i) {
+		   this.sprites[i].drawCollisionRectangle = false;
+	   }
    },
    
    // ! ------------------------- SPRITE CREATION ---------------------------
@@ -1148,6 +1159,12 @@ SnailBait.prototype = {
 	   this.runner.top 		= this.calculatePlatformTop(this.runner.track) - this.RUNNER_CELLS_HEIGHT;
 	   this.runner.lastAdvanceTime = 0;
 	   
+	   this.runner.collisionMargin = {
+		   left: 10,
+		   top: 15,
+		   right: 20,
+		   bottom: 20,
+	   };
 	   
 	   this.sprites = [ this.runner ];
    },
@@ -1163,6 +1180,13 @@ SnailBait.prototype = {
 
          bat.width = this.batData[i].width;
          bat.height = this.BAT_CELLS_HEIGHT;
+         
+         bat.collisionMargin = {
+	     	left: 6,
+			top: 11,
+			right: 4,
+		    bottom: 12,
+         };
 
          this.bats.push(bat);
       }
@@ -1177,6 +1201,13 @@ SnailBait.prototype = {
 
          bee.width = this.BEE_CELLS_WIDTH;
          bee.height = this.BEE_CELLS_HEIGHT;
+         
+         bee.collisionMargin = {
+	     	left: 10,
+			top: 10,
+			right: 5,
+		    bottom: 15,
+         };
 
          this.bees.push(bee);
       }
@@ -1215,8 +1246,17 @@ SnailBait.prototype = {
          coin.width = this.COIN_CELLS_WIDTH;
          coin.height = this.COIN_CELLS_HEIGHT;
          
-/*          coin.behaviors.push(); */
-
+         // coin.behaviors.push(new BounceBehavior(910 + (i * 10),
+         // 										610 + (i * 10),
+         // 										60 * Math.random() * 4));
+         										
+		 coin.collisionMargin = {
+	     	left: coin.width/8,
+			top: coin.width/8,
+			right: coin.width/8,
+		    bottom: coin.width/4,
+         };
+		 
          this.coins.push(coin);
       }
    },
@@ -1233,7 +1273,14 @@ SnailBait.prototype = {
 
          sapphire.width = this.SAPPHIRE_CELLS_WIDTH;
          sapphire.height = this.SAPPHIRE_CELLS_HEIGHT;
-/*          sapphire.value = 100; */
+         sapphire.value = 100;
+         
+         sapphire.collisionMargin = {
+	     	left: 0,
+			top: 5,
+			right: 5,
+		    bottom: 5,
+         };
 
          this.sapphires.push(sapphire);
       }
@@ -1253,7 +1300,14 @@ SnailBait.prototype = {
 
          ruby.width = this.RUBY_CELLS_WIDTH;
          ruby.height = this.RUBY_CELLS_HEIGHT;
-/*          ruby.value = 200; */
+         ruby.value = 200;
+         
+         ruby.collisionMargin = {
+	     	left: 0,
+			top: 5,
+			right: 11,
+		    bottom: 5,
+         };
          
          this.rubies.push(ruby);
       }
@@ -1382,7 +1436,7 @@ SnailBait.prototype = {
    initializeImages: function () {
       this.spritesheet.src = 'images/mySpritesheet.png';
    
-      this.spritesheet.onload = function (e) {
+      this.spritesheet.onload = function(e) {
          snailBait.start();
       };
    },
@@ -1497,6 +1551,7 @@ var snailBait = new SnailBait();
 snailBait.initializeImages();
 snailBait.createSprites();
 snailBait.setTimeRate(1.0); // 1.0 is normal; 0.5 is half-speed; etc.
+snailBait.revealCollisionRectangles();
 
 /*
 setTimeout(function() {
