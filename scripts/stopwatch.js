@@ -52,6 +52,7 @@ Stopwatch = function ()  {
 // stopped.
 
 Stopwatch.prototype = {
+   
    start: function (now) {
       this.startTime = now ? now : +new Date();
       this.elapsedTime = undefined;
