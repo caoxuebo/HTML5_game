@@ -80,13 +80,13 @@ Sprite.prototype = {
 		context.restore();
 	}, // end draw()
 	
-	update: function (now, fps) {
+	update: function (now, fps, lastAnimationFrameTime) {
       for (var i = 0; i < this.behaviors.length; ++i) {
          if (this.behaviors[i] === undefined) { // Modified while looping?
             return;
          }
 
-         this.behaviors[i].execute(this, now, fps);
+         this.behaviors[i].execute(this, now, fps, lastAnimationFrameTime);
       }
    },
 	
