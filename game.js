@@ -38,42 +38,42 @@ var SnailBait =  function () {
    this.canvas = document.getElementById('game-canvas'),
    this.context = this.canvas.getContext('2d'),
    
-   this.fpsElement = document.getElementById('fps'),
    this.toast = document.getElementById('toast'),
+   this.lives = document.getElementById('lives'),
+   this.livesIconLeft = document.getElementById('life-icon-left'),
+   this.livesIconMiddle = document.getElementById('life-icon-middle'),
+   this.livesIconRight = document.getElementById('life-icon-right'),
 
    // ! Constants............................................................
 
    this.LEFT = 1,
    this.RIGHT = 2,
    this.STATIONARY = 3,
+   this.MAX_NUMBER_OF_LIVES = 3,
+   this.lives = this.MAX_NUMBER_OF_LIVES,
 
-   // ! Background Constants.................................................
+   // Background Constants.................................................
    
    this.BACKGROUND_WIDTH = 1102,  // Canvas width
    this.BACKGROUND_HEIGHT = 400,  // Canvas height
    this.BACKGROUND_VELOCITY = 42,
+   this.STARTING_BACKGROUND_VELOCITY = 0,
+   this.STARTING_BACKGROUND_OFFSET = 0,
 
    this.CANVAS_WIDTH_IN_METERS = 10, // Arbitrary Canvas width
    this.PIXELS_PER_METER = this.canvas.width / this.CANVAS_WIDTH_IN_METERS,
    this.GRAVITY_FORCE = 9.81, // meters per second squared
 
-   this.DEFAULT_TOAST_TIME = 1000,
-
    this.PAUSED_CHECK_INTERVAL = 200,
    this.PLATFORM_HEIGHT = 8,  
    this.PLATFORM_STROKE_WIDTH = 2,
    this.PLATFORM_STROKE_STYLE = 'rgb(0,0,0)',
-
-   this.STARTING_BACKGROUND_VELOCITY = 0,
-
    this.STARTING_PLATFORM_OFFSET = 0,
-   this.STARTING_BACKGROUND_OFFSET = 0,
 
    this.STARTING_PAGEFLIP_INTERVAL = -1,
-   this.STARTING_RUNNER_TRACK = 1,
    this.STARTING_RUNNER_VELOCITY = 0,
 
-   // ! Track baselines...................................................
+   // Track baselines...................................................
 
    this.TRACK_1_BASELINE = 323,
    this.TRACK_2_BASELINE = 223,
@@ -85,24 +85,19 @@ var SnailBait =  function () {
    // PLATFORM_VELOCITY_MULTIPLIER * backgroundOffset: The
    // platforms move PLATFORM_VELOCITY_MULTIPLIER times as
    // fast as the background.
-
+   
    this.PLATFORM_VELOCITY_MULTIPLIER = 4.35,
-   
    this.RUN_ANIMATION_RATE = 30,
-   
    this.RUBY_SPARKLE_DURATION = 200,
    this.RUBY_SPARKLE_INTERVAL = 500,
-   
    this.RUNNER_EXPLOSION_DURATION = 1000,
    this.BAD_GUY_EXPLOSION_DURATION = 1500,
-   
    this.SAPPHIRE_SPARKLE_DURATION = 200,
    this.SAPPHIRE_SPARKLE_INTERVAL = 300,
-   
-   this.SNAIL_BOMB_VELOCITY = 80,
-   
+   this.SNAIL_BOMB_VELOCITY = 250,
    this.COIN_BOUNCE_DURATON = 2000,
-
+   this.DEFAULT_TOAST_TIME = 2000,
+   
    // ! Images..........................................................
    
    this.spritesheet = new Image(),
@@ -144,6 +139,7 @@ var SnailBait =  function () {
    // ! Runner values ..................................................
    
    this.INITIAL_RUNNER_TRACK = 1,
+   this.STARTING_RUNNER_TRACK = 1,
    this.INITIAL_RUNNER_LEFT = 50,
    this.RUNNER_HEIGHT = 43,
    this.RUNNER_JUMP_DURATION = 1000,
@@ -488,6 +484,19 @@ var SnailBait =  function () {
       },
    ],
    
+   // ! Sprites arrays.................................................
+   
+   this.bats			= [],
+   this.bees			= [],
+   this.buttons			= [],
+   this.coins			= [],
+   this.platforms		= [],
+   this.rubies			= [],
+   this.sapphires		= [],
+   this.smokingHoles	= [],
+   this.snails			= [],
+   // finally an array to hold all the sprite arrays
+   this.sprites			= [],
    
    // ! Sprites behaviors...............................................
    
@@ -581,7 +590,7 @@ var SnailBait =  function () {
 
       finishDescent : function (sprite, now) {
          sprite.top = sprite.verticalLaunchPosition;
-         sprite.stopJumping(now);
+         sprite.stopJumping();
       },
       
       // Execute..............................................................
@@ -727,8 +736,7 @@ var SnailBait =  function () {
 	   		}
 	   		else if ('coin' 	  === otherSprite.type ||
 	   				 'sapphire'   === otherSprite.type ||
-	   				 'ruby' 	  === otherSprite.type ||
-	   				 'snail bomb' === otherSprite.type) {
+	   				 'ruby' 	  === otherSprite.type) {
 		   		otherSprite.visible = false;	 
 	   		}
 	   		else if ('button' === otherSprite.type && (sprite.falling || sprite.jumping)) {
@@ -740,10 +748,15 @@ var SnailBait =  function () {
 	   		}
 	   		
 	   		if ('bat'	=== otherSprite.type ||
-	   			'bee' 	=== otherSprite.type) {
+	   			'bee' 	=== otherSprite.type ||
+	   			'snail bomb' === otherSprite.type) {
 		   			snailBait.explode(sprite);
 		   			snailBait.shake();
-		   			snailBait.loseLife();
+		   			
+		   			setTimeout(function() {
+		   				snailBait.loseLife();
+		   				snailBait.reset();
+		   			}, snailBait.RUNNER_EXPLOSION_DURATION);
 	   		}
 	   		
 	   		if ('snail' === otherSprite.type) {
@@ -820,6 +833,7 @@ var SnailBait =  function () {
 			if (this.isOutOfPlay(sprite) || sprite.exploding) {
 				if (sprite.falling) {
 					sprite.stopFalling();
+/* 					snailBait.reset(); */
 					snailBait.putSpriteOnTrack(sprite, 1);
 				}
 				return;
@@ -882,20 +896,6 @@ var SnailBait =  function () {
 		   }, BUTTON_REBOUND_DELAY);
 	   }
    },
-   
-   // ! Sprites arrays.................................................
-   
-   this.bats			= [],
-   this.bees			= [],
-   this.buttons			= [],
-   this.coins			= [],
-   this.platforms		= [],
-   this.rubies			= [],
-   this.sapphires		= [],
-   this.smokingHoles	= [],
-   this.snails			= [],
-   // finally an array to hold all the sprite arrays
-   this.sprites			= [],
    
    // ! Sprite artists.................................................
 
@@ -989,6 +989,8 @@ SnailBait.prototype = {
 	   }
    },
    
+   // ! ------------------------- GAMEPLAY ------------------------------------
+   
    turnLeft: function () {
       this.bgVelocity = -this.BACKGROUND_VELOCITY;
       this.runner.runAnimationRate = this.RUN_ANIMATION_RATE;
@@ -1002,8 +1004,69 @@ SnailBait.prototype = {
       this.runnerArtist.cells = this.runnerCellsRight;
       this.runner.direction = this.RIGHT;
    },
+   
+   loseLife: function() {
+	   this.lives--;
+	   this.updateLivesElement();
+	   
+	   if (this.lives === 1) {
+		   snailBait.splashToast('Last chance!');
+	   }
+   },
+   
+   startTransition: function() {
+	   var TRANSITION_TIME_RATE = 0.2;
+	   
+	   this.transitioning = true;
+	   this.setTimeRate(TRANSITION_TIME_RATE);
+   },
+   
+   endTransition: function() {
+	   this.transitioning = false;
+	   this.setTimeRate(1.0);
+   },
+   
+   reset: function() {
+	   var CANVAS_TRANSITION_DURATION = 2000,
+	   	   REVEAL_RUNNER_DURATION = 1000,
+	   	   CONTINUE_RUNNING_DURATION = 500;
+	   	   
+	   snailBait.runner.exploding = false;
+	   snailBait.runner.visible = false;
+	   snailBait.runner.artist.cells = snailBait.runnerCellsRight;
+	   
+	   if (snailBait.runner.jumping) { snailBait.runner.stopJumping(); };
+	   if (snailBait.runner.falling) { snailBait.runner.stopFalling(); };
+	   
+	   snailBait.startTransition(); // Turns off some processing
+	   snailBait.canvas.style.opacity = 0; // Triggers CSS transitions
+	   
+	   setTimeout(function() {
+		   snailBait.backgroundOffset = snailBait.STARTING_BACKGROUND_OFFSET;
+		   snailBait.spriteOffset = snailBait.STARTING_BACKGROUND_OFFSET;
+		   snailBait.bgVelocity = snailBait.STARTING_BACKGROUND_VELOCITY;
+		   
+		   for (var i=0; i < snailBait.sprites.length; ++i) {
+			   snailBait.sprites[i].visible = true;
+		   }
+		   
+		   snailBait.canvas.style.opacity = 1.0; // Triggers CSS transitions
+		   
+		   setTimeout(function() {
+			   snailBait.runner.visible = true;
+			   
+			   setTimeout(function() {
+				   snailBait.runner.runAnimationRate = 0; // stop running
+				   snailBait.endTransition();
+			   }, CONTINUE_RUNNING_DURATION);
+		   }, CANVAS_TRANSITION_DURATION);
+		   
+	   }, CANVAS_TRANSITION_DURATION);
+	   
+	   
+   },
     
-   // ! Toast................................................................
+   // Toast................................................................
 
    splashToast: function (text, howLong) {
       howLong = howLong || this.DEFAULT_TOAST_TIME;
@@ -1029,8 +1092,31 @@ SnailBait.prototype = {
          }, 480);
       }, howLong);
    },
+   
+   updateLivesElement: function() {
+	   if (this.lives === 3) {
+		   this.livesIconLeft.style.opacity = 1.0;
+		   this.livesIconMiddle.style.opacity = 1.0;
+		   this.livesIconRight.style.opacity = 1.0;
+	   }
+	   else if (this.lives === 2) {
+		   this.livesIconLeft.style.opacity = 1.0;
+		   this.livesIconMiddle.style.opacity = 1.0;
+		   this.livesIconRight.style.opacity = 0;
+	   }
+	   else if (this.lives === 1) {
+		   this.livesIconLeft.style.opacity = 1.0;
+		   this.livesIconMiddle.style.opacity = 0;
+		   this.livesIconRight.style.opacity = 0;
+	   }
+	   else if (this.lives === 0) {
+		   this.livesIconLeft.style.opacity = 0;
+		   this.livesIconMiddle.style.opacity = 0;
+		   this.livesIconRight.style.opacity = 0;
+	   }
+   },
 
-   // ! Pause................................................................
+   // Pause................................................................
 
    togglePausedStateOfAllBehaviors: function (now) {
       
@@ -1147,11 +1233,35 @@ SnailBait.prototype = {
    },
    
    shake: function() {
-	   console.log('shake');	   
-   },
-   
-   loseLife: function() {
-	   console.log('life lost');
+   		var originalBackgroundVelocity = snailBait.bgVelocity,
+   			SHAKE_INTERVAL = 90;
+   			
+   		this.bgVelocity = -this.BACKGROUND_VELOCITY;
+   		
+   		setTimeout(function(e) {
+	   		snailBait.bgVelocity = snailBait.BACKGROUND_VELOCITY;
+	   		setTimeout(function() {
+		   		snailBait.bgVelocity = -snailBait.BACKGROUND_VELOCITY;
+		   			setTimeout(function() {
+			   			snailBait.bgVelocity = snailBait.BACKGROUND_VELOCITY;
+			   				setTimeout(function() {
+				   				snailBait.bgVelocity = -snailBait.BACKGROUND_VELOCITY;
+				   					setTimeout(function() {
+					   					snailBait.bgVelocity = snailBait.BACKGROUND_VELOCITY;
+					   						setTimeout(function() {
+						   						snailBait.bgVelocity = -snailBait.BACKGROUND_VELOCITY;
+						   							setTimeout(function() {
+							   							snailBait.bgVelocity = snailBait.BACKGROUND_VELOCITY;
+							   								setTimeout(function() {
+								   								snailBait.bgVelocity = -snailBait.BACKGROUND_VELOCITY;
+							   								}, SHAKE_INTERVAL);
+						   							}, SHAKE_INTERVAL);
+					   						}, SHAKE_INTERVAL);
+				   					}, SHAKE_INTERVAL);
+			   				}, SHAKE_INTERVAL);
+		   			}, SHAKE_INTERVAL);
+	   		}, SHAKE_INTERVAL);
+   		}, SHAKE_INTERVAL);
    },
    
    blowupBees: function() {
@@ -1585,11 +1695,10 @@ SnailBait.prototype = {
    
    calculateFps: function (now) {
       var fps = 1000 / (now - this.lastAnimationFrameTime) * this.timeFactor;
-      this.lastAnimationFrameTime = now;
+/*       this.lastAnimationFrameTime = now; */
 
       if (now - this.lastFpsUpdateTime > 1000) {
 	      this.lastFpsUpdateTime = now;
-	      this.fpsElement.innerHTML = fps.toFixed(0) + 'fps';
       }
 
       return fps; 

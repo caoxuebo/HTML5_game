@@ -105,3 +105,10 @@ body {
 	border: 2px solid black;
 }
 
+.life-icon {
+   -webkit-transition: opacity 0.5s;
+   -moz-transition: opacity 0.5s;
+   -o-transition: opacity 0.5s;
+   transition: opacity 0.5s;
+}
+
