@@ -43,6 +43,8 @@ var SnailBait =  function () {
    this.livesIconLeft = document.getElementById('life-icon-left'),
    this.livesIconMiddle = document.getElementById('life-icon-middle'),
    this.livesIconRight = document.getElementById('life-icon-right'),
+   this.creditsElement = document.getElementById('credits'),
+   this.newGameLink = document.getElementById('new-game-link'),
 
    // ! Constants............................................................
 
@@ -50,6 +52,7 @@ var SnailBait =  function () {
    this.RIGHT = 2,
    this.STATIONARY = 3,
    this.MAX_NUMBER_OF_LIVES = 3,
+   this.SHORT_DELAY = 50,
    this.lives = this.MAX_NUMBER_OF_LIVES,
 
    // Background Constants.................................................
@@ -72,6 +75,7 @@ var SnailBait =  function () {
 
    this.STARTING_PAGEFLIP_INTERVAL = -1,
    this.STARTING_RUNNER_VELOCITY = 0,
+   this.CANVAS_TRANSITION_DURATION = 2000,
 
    // Track baselines...................................................
 
@@ -246,8 +250,8 @@ var SnailBait =  function () {
    // Bats..............................................................
    
    this.batData = [
-      { left: 70, 	top: this.TRACK_2_BASELINE - this.BAT_CELLS_HEIGHT,   width: 34 },
-      { left: 610, 	top: this.TRACK_3_BASELINE - this.BAT_CELLS_HEIGHT,   width: 46 },
+      { left: 370, 	top: this.TRACK_2_BASELINE - this.BAT_CELLS_HEIGHT,   width: 34 },
+      { left: 660, 	top: this.TRACK_3_BASELINE - this.BAT_CELLS_HEIGHT,   width: 46 },
       { left: 115, 	top: this.TRACK_2_BASELINE - 3*this.BAT_CELLS_HEIGHT, width: 35 }, 
       { left: 1720, top: this.TRACK_2_BASELINE - this.BAT_CELLS_HEIGHT,   width: 50 },
       { left: 1960, top: this.TRACK_3_BASELINE - 2*this.BAT_CELLS_HEIGHT, width: 34 },
@@ -833,9 +837,12 @@ var SnailBait =  function () {
 			if (this.isOutOfPlay(sprite) || sprite.exploding) {
 				if (sprite.falling) {
 					sprite.stopFalling();
-/* 					snailBait.reset(); */
-					snailBait.putSpriteOnTrack(sprite, 1);
+/*
+					snailBait.loseLife();
+	   				snailBait.reset();
+*/
 				}
+				
 				return;
 			}
 			
@@ -1012,6 +1019,35 @@ SnailBait.prototype = {
 	   if (this.lives === 1) {
 		   snailBait.splashToast('Last chance!');
 	   }
+	   
+	   if (this.lives === 0) {
+		   this.gameOver();
+	   }
+   },
+   
+   gameOver: function() {
+	   snailBait.splashToast('Game Over');
+	   snailBait.revealCredits();
+	   snailBait.startTransition();
+   },
+   
+   revealLivesIcons: function() {
+	   var LIVES_ICON_REVEAL_DELAY = 2000;
+	   
+	   setTimeout(function(e) {
+		   snailBait.livesIconLeft.style.opacity = 1.0;
+		   snailBait.livesIconRight.style.opacity = 1.0;
+		   snailBait.livesIconMiddle.style.opacity = 1.0;
+	   }, LIVES_ICON_REVEAL_DELAY);
+   },
+   
+   revealCredits: function() {
+	   this.creditsElement.style.display = 'block';
+	   
+	   setTimeout(function() {
+		   snailBait.creditsElement.style.opacity = 1.0;
+		   snailBait.revealLivesIcons();
+	   }, this.SHORT_DELAY);
    },
    
    startTransition: function() {
@@ -1027,8 +1063,7 @@ SnailBait.prototype = {
    },
    
    reset: function() {
-	   var CANVAS_TRANSITION_DURATION = 2000,
-	   	   REVEAL_RUNNER_DURATION = 1000,
+	   var REVEAL_RUNNER_DURATION = 1000,
 	   	   CONTINUE_RUNNING_DURATION = 500;
 	   	   
 	   snailBait.runner.exploding = false;
@@ -1056,14 +1091,25 @@ SnailBait.prototype = {
 			   snailBait.runner.visible = true;
 			   
 			   setTimeout(function() {
-				   snailBait.runner.runAnimationRate = 0; // stop running
+				   snailBait.runner.runAnimationRate = snailBait.RUN_ANIMATION_RATE;
 				   snailBait.endTransition();
 			   }, CONTINUE_RUNNING_DURATION);
-		   }, CANVAS_TRANSITION_DURATION);
+		   }, REVEAL_RUNNER_DURATION);
 		   
-	   }, CANVAS_TRANSITION_DURATION);
+	   }, this.CANVAS_TRANSITION_DURATION);
 	   
 	   
+   },
+   
+   restartGame: function() {
+	   this.lives = this.MAX_NUMBER_OF_LIVES;
+	   this.updateLivesElement();
+	   this.creditsElement.style.opacity = 0;
+	   
+	   setTimeout(function() {
+		   snailBait.creditsElement.style.display = 'none';
+		   snailBait.endTransition();
+	   }, this.CANVAS_TRANSITION_DURATION);
    },
     
    // Toast................................................................
@@ -1787,9 +1833,9 @@ SnailBait.prototype = {
 	   };
 	   
 	   this.runner.stopFalling = function() {
-		   this.falling = false;
-		   this.velocityY = 0;
-		   this.fallAnimationTimer.stop(snailBait.timeSystem.calculateGameTime());
+		   snailBait.runner.falling = false;
+		   snailBait.runner.velocityY = 0;
+		   snailBait.runner.fallAnimationTimer.stop(snailBait.timeSystem.calculateGameTime());
 	   };
    },
    
@@ -1879,4 +1925,8 @@ setTimeout(function() {
 	snailBait.turnRight();
 }, 1000);
 */
+
+snailBait.newGameLink.onclick = function(e) {
+	snailBait.restartGame();
+};
 
