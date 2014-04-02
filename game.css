@@ -185,3 +185,34 @@ body {
 #sound-and-music-title {
 	margin-top: 20px;
 }
+
+#instructions {
+	margin-left: 198px;
+	padding-left: 10px;
+	padding-top: 10px;
+	
+	-webkit-transition: opacity 5s;
+	-moz-transition: opacity 5s;
+	-o-transition: opacity 5s;
+	transition: opacity 5s;
+	
+	color: #ff0;
+	font-size: 0.95em;
+	display: none;
+	opacity: 0;
+}
+
+.keys {
+	color: blue;
+	text-shadow: 1px 1px 1px rgba(255,255,0,1.0);
+	background: rgba(0,0,0,0.1);
+	border: thin solid rgba(0,0,0,0.2);
+	border-radius: 5px;
+	margin-left: 10px;
+	padding-right: 10px;
+	padding-left: 10px;
+	padding-bottom: 5px;
+	
+	display: inline-block;
+	float: left;
+}

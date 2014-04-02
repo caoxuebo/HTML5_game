@@ -45,6 +45,8 @@ var SnailBait =  function () {
    this.livesIconRight = document.getElementById('life-icon-right'),
    this.creditsElement = document.getElementById('credits'),
    this.newGameLink = document.getElementById('new-game-link'),
+   this.scoreElement = document.getElementById('score'),
+   this.instructionsElement = document.getElementById('instructions'),
 
    // ! Constants............................................................
 
@@ -53,7 +55,6 @@ var SnailBait =  function () {
    this.STATIONARY = 3,
    this.MAX_NUMBER_OF_LIVES = 3,
    this.SHORT_DELAY = 50,
-   this.lives = this.MAX_NUMBER_OF_LIVES,
 
    // Background Constants.................................................
    
@@ -101,18 +102,17 @@ var SnailBait =  function () {
    this.SNAIL_BOMB_VELOCITY = 250,
    this.COIN_BOUNCE_DURATON = 2000,
    this.DEFAULT_TOAST_TIME = 2000,
-   
-   // ! Images..........................................................
+      
+   // ! Game variables.......................................................
    
    this.spritesheet = new Image(),
-   
-   // ! Paused..........................................................
-   
    this.paused = false,
    this.pauseStartTime = 0,
    this.totalTimePaused = 0,
-
+   this.lives = this.MAX_NUMBER_OF_LIVES,
    this.windowHasFocus = true,
+   this.score = 0,
+   
    
    // ! Sprite Sheet Constants..........................................
    
@@ -736,6 +736,12 @@ var SnailBait =  function () {
    		},
    		
    		processCollision : function(sprite, otherSprite) {
+	   		
+	   		if (otherSprite.value) {
+		   		snailBait.score += otherSprite.value;
+		   		snailBait.score = snailBait.score < 0 ? 0 : snailBait.score;
+		   		snailBait.updateScoreElement();
+	   		}
 	   		if (sprite.jumping && 'platform' === otherSprite.type) {
 		   		this.processPlatformCollisionDuringJump(sprite, otherSprite);
 	   		}
@@ -1042,6 +1048,18 @@ SnailBait.prototype = {
 		   snailBait.livesIconRight.style.opacity = 1.0;
 		   snailBait.livesIconMiddle.style.opacity = 1.0;
 	   }, LIVES_ICON_REVEAL_DELAY);
+   },
+   
+   updateScoreElement: function() {
+	   this.scoreElement.innerHTML = this.score;
+   },
+   
+   revealInstructions: function() {
+	   this.instructionsElement.style.display = 'block';
+	   
+	   setTimeout(function() {
+		   snailBait.instructionsElement.style.opacity = 1.0;
+	   }, snailBait.SHORT_DELAY);
    },
    
    revealCredits: function() {
@@ -1470,6 +1488,8 @@ SnailBait.prototype = {
          bat.width = this.batData[i].width;
          bat.height = this.BAT_CELLS_HEIGHT;
          
+         bat.value = -100;
+         
          bat.collisionMargin = {
 	     	left: 6,
 			top: 11,
@@ -1491,6 +1511,8 @@ SnailBait.prototype = {
 
          bee.width = this.BEE_CELLS_WIDTH;
          bee.height = this.BEE_CELLS_HEIGHT;
+         
+         bee.value = -150;
          
          bee.collisionMargin = {
 	     	left: 10,
@@ -1541,6 +1563,8 @@ SnailBait.prototype = {
          // coin.behaviors.push(new BounceBehavior(910 + (i * 10),
          // 										610 + (i * 10),
          // 										60 * Math.random() * 4));
+         
+         coin.value = 100;
          										
 		 coin.collisionMargin = {
 	     	left: coin.width/8,
@@ -1920,7 +1944,8 @@ window.onfocus = function (e) {  // unpause if paused
 var snailBait = new SnailBait();
 snailBait.initializeImages();
 snailBait.createSprites();
-snailBait.setTimeRate(0.10); // 1.0 is normal; 0.5 is half-speed; etc.
+snailBait.setTimeRate(1.0); // 1.0 is normal; 0.5 is half-speed; etc.
+snailBait.revealInstructions();
 /* snailBait.revealCollisionRectangles(); */
 
 /*
