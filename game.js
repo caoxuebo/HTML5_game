@@ -572,6 +572,7 @@ var SnailBait =  function () {
          sprite.descendAnimationTimer.start(now);
 
 		 sprite.track++;
+		 console.log(sprite.track);
 		 sprite.top = snailBait.calculatePlatformTop(sprite.track) - sprite.height;
       },
       
@@ -837,10 +838,11 @@ var SnailBait =  function () {
 			if (this.isOutOfPlay(sprite) || sprite.exploding) {
 				if (sprite.falling) {
 					sprite.stopFalling();
-/*
+					
 					snailBait.loseLife();
-	   				snailBait.reset();
-*/
+	   				setTimeout(function() {
+		   				snailBait.reset();
+		   			}, snailBait.RUNNER_EXPLOSION_DURATION);
 				}
 				
 				return;
@@ -861,6 +863,7 @@ var SnailBait =  function () {
 				else {
 					sprite.track--;
 					sprite.top += dropDistance;
+					console.log(sprite.track);
 				}
 			}
 	    }
@@ -1833,9 +1836,9 @@ SnailBait.prototype = {
 	   };
 	   
 	   this.runner.stopFalling = function() {
-		   snailBait.runner.falling = false;
-		   snailBait.runner.velocityY = 0;
-		   snailBait.runner.fallAnimationTimer.stop(snailBait.timeSystem.calculateGameTime());
+		   this.falling = false;
+		   this.velocityY = 0;
+		   this.fallAnimationTimer.stop(snailBait.timeSystem.calculateGameTime());
 	   };
    },
    
@@ -1917,7 +1920,7 @@ window.onfocus = function (e) {  // unpause if paused
 var snailBait = new SnailBait();
 snailBait.initializeImages();
 snailBait.createSprites();
-snailBait.setTimeRate(1.0); // 1.0 is normal; 0.5 is half-speed; etc.
+snailBait.setTimeRate(0.10); // 1.0 is normal; 0.5 is half-speed; etc.
 /* snailBait.revealCollisionRectangles(); */
 
 /*
