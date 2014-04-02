@@ -29,7 +29,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
 */
 
-// ! ------------------------ SNAILBAIT CONSTRUCTOR -------------------------
+// ! ------ SNAILBAIT CONSTRUCTOR -------------------------
 
 var SnailBait =  function () {
 
@@ -37,7 +37,7 @@ var SnailBait =  function () {
   
    this.canvas = document.getElementById('game-canvas'),
    this.context = this.canvas.getContext('2d'),
-   
+   // Misc..................................................................
    this.toast = document.getElementById('toast'),
    this.lives = document.getElementById('lives'),
    this.livesIconLeft = document.getElementById('life-icon-left'),
@@ -47,6 +47,18 @@ var SnailBait =  function () {
    this.newGameLink = document.getElementById('new-game-link'),
    this.scoreElement = document.getElementById('score'),
    this.instructionsElement = document.getElementById('instructions'),
+   // Sound and Music elements...............................................
+   this.soundAndMusicElement = document.getElementById('sound-and-music'),
+   this.soundCheckboxElement = document.getElementById('sound-checkbox'),
+   this.musicCheckboxElement = document.getElementById('music-checkbox'),
+   this.soundtrackElement = document.getElementById('soundtrack'),
+   this.chimesSoundElement = document.getElementById('chimes-sound'),
+   this.plopSoundElement = document.getElementById('plop-sound'),
+   this.explosionSoundElement = document.getElementById('explosion-sound'),
+   this.fallingWhistleSoundElement = document.getElementById('whistle-down-sound'),
+   this.coinSoundElement = document.getElementById('coin-sound'),
+   this.jumpWhistleSoundElement = document.getElementById('jump-sound'),
+   this.thudSoundElement = document.getElementById('thud-sound'),
 
    // ! Constants............................................................
 
@@ -55,6 +67,17 @@ var SnailBait =  function () {
    this.STATIONARY = 3,
    this.MAX_NUMBER_OF_LIVES = 3,
    this.SHORT_DELAY = 50,
+
+   // Sound and Music Constants..............................................
+   
+   this.COIN_VOLUME = 0.3,
+   this.SOUNDTRACK_VOLUME = 0.25,
+   this.JUMP_WHISTLE_VOLUME = 0.1,
+   this.PLOP_VOLUME = 0.40,
+   this.THUD_VOLUME = 0.40,
+   this.FALLING_WHISTLE_VOLUME = 0.10,
+   this.EXPLOSION_VOLUME = 0.40,
+   this.CHIMES_VOLUME = 0.3,
 
    // Background Constants.................................................
    
@@ -84,13 +107,15 @@ var SnailBait =  function () {
    this.TRACK_2_BASELINE = 223,
    this.TRACK_3_BASELINE = 123,
 
-   // ! Animation Constants................................................
+   // Animation Constants................................................
    
    // Platform scrolling offset (and therefore speed) is
    // PLATFORM_VELOCITY_MULTIPLIER * backgroundOffset: The
    // platforms move PLATFORM_VELOCITY_MULTIPLIER times as
    // fast as the background.
    
+   this.BUTTON_PACE_VELOCITY = 80,
+   this.SNAIL_PACE_VELOCITY = 50,
    this.PLATFORM_VELOCITY_MULTIPLIER = 4.35,
    this.RUN_ANIMATION_RATE = 30,
    this.RUBY_SPARKLE_DURATION = 200,
@@ -103,16 +128,52 @@ var SnailBait =  function () {
    this.COIN_BOUNCE_DURATON = 2000,
    this.DEFAULT_TOAST_TIME = 2000,
       
+   // Runner Constants ..................................................
+   
+   this.INITIAL_RUNNER_TRACK = 1,
+   this.STARTING_RUNNER_TRACK = 1,
+   this.INITIAL_RUNNER_LEFT = 50,
+   this.RUNNER_HEIGHT = 43,
+   this.RUNNER_JUMP_DURATION = 1000,
+   this.RUNNER_JUMP_HEIGHT = 120,
+   
    // ! Game variables.......................................................
    
+   // Images ............................................................
    this.spritesheet = new Image(),
-   this.paused = false,
-   this.pauseStartTime = 0,
-   this.totalTimePaused = 0,
+   // Misc  ............................................................
    this.lives = this.MAX_NUMBER_OF_LIVES,
    this.windowHasFocus = true,
    this.score = 0,
-   
+   this.scrollingDirection = this.STATIONARY,
+   this.noScroll = false,
+   // Fps  ............................................................
+   this.lastFpsUpdateTime = 0,
+   this.fps = 60,
+   // Time ............................................................
+   this.pauseStartTime = 0,
+   this.totalTimePaused = 0,
+   this.paused = false,
+   this.timeSystem = new TimeSystem(); // See timeSystem.js
+   this.timeFactor = 1.0; // 1.0 is normal; 0.5 is half-speed; etc.
+   this.lastAnimationFrameTime = 0,
+   // Runner ...........................................................
+   this.runnerTrack = this.STARTING_RUNNER_TRACK,
+   this.runnerPageflipInterval = this.STARTING_PAGEFLIP_INTERVAL,
+   // Translation offsets ................................................
+   this.backgroundOffset = this.STARTING_BACKGROUND_OFFSET,
+   this.platformOffset = this.STARTING_PLATFORM_OFFSET,
+   // Velocities......................................................
+   this.bgVelocity = this.STARTING_BACKGROUND_VELOCITY,
+   this.platformVelocity,
+   this.spriteOffset = 0, 
+   // Sound and Music....................................................
+   this.soundOn = this.soundCheckboxElement.checked,
+   this.musicOn = this.musicCheckboxElement.checked,
+   this.audioTracks = [ // SnailBait can play up to 8 audiotracks simultaneously
+       new Audio(), new Audio(), new Audio(), new Audio(),
+       new Audio(), new Audio(), new Audio(), new Audio()
+   ];
    
    // ! Sprite Sheet Constants..........................................
    
@@ -140,15 +201,6 @@ var SnailBait =  function () {
    this.RUNNER_CELLS_WIDTH  = 50,
    this.RUNNER_CELLS_HEIGHT = 54,
    
-   // ! Runner values ..................................................
-   
-   this.INITIAL_RUNNER_TRACK = 1,
-   this.STARTING_RUNNER_TRACK = 1,
-   this.INITIAL_RUNNER_LEFT = 50,
-   this.RUNNER_HEIGHT = 43,
-   this.RUNNER_JUMP_DURATION = 1000,
-   this.RUNNER_JUMP_HEIGHT = 120,
-
    // ! Spritesheet cells................................................
 
    this.runnerCellsRight = [
@@ -313,41 +365,7 @@ var SnailBait =  function () {
    this.snailData = [
       { platformIndex: 13 },
    ],
-
-   // ! Time............................................................
    
-   this.lastAnimationFrameTime = 0,
-   this.lastFpsUpdateTime = 0,
-   this.fps = 60,
-   
-   this.timeSystem = new TimeSystem(); // See timeSystem.js
-   this.timeFactor = 1.0; // 1.0 is normal; 0.5 is half-speed; etc.
-
-   // ! Runner track....................................................
-
-   this.runnerTrack = this.STARTING_RUNNER_TRACK,
-
-   // ! Pageflip timing for runner......................................
-
-   this.runnerPageflipInterval = this.STARTING_PAGEFLIP_INTERVAL,
-   
-   // ! Scrolling direction.............................................
-
-   this.scrollingDirection = this.STATIONARY,
-   this.noScroll = false,
-   
-   // ! Translation offsets.............................................
-
-   this.backgroundOffset = this.STARTING_BACKGROUND_OFFSET,
-   this.platformOffset = this.STARTING_PLATFORM_OFFSET,
-
-   // ! Velocities......................................................
-
-   this.bgVelocity = this.STARTING_BACKGROUND_VELOCITY,
-   this.platformVelocity,
-   this.spriteOffset = 0, 
-   this.BUTTON_PACE_VELOCITY = 80,
-   this.SNAIL_PACE_VELOCITY = 50,
 
    // ! Platforms coordinate on canvas (data)...........................
 
@@ -730,6 +748,7 @@ var SnailBait =  function () {
 		   		sprite.top = snailBait.calculatePlatformTop(sprite.track) - sprite.height;
 	   		}
 	   		else {
+	   			snailBait.playSound(snailBait.plopSoundElement);
 		   		sprite.fall();
 	   		}
 	   		sprite.stopJumping();
@@ -748,7 +767,14 @@ var SnailBait =  function () {
 	   		else if ('coin' 	  === otherSprite.type ||
 	   				 'sapphire'   === otherSprite.type ||
 	   				 'ruby' 	  === otherSprite.type) {
-		   		otherSprite.visible = false;	 
+		   		otherSprite.visible = false;
+		   		
+		   		if ('coin' === otherSprite.type) {
+			   		snailBait.playSound(snailBait.coinSoundElement);
+		   		}
+		   		if ('sapphire' === otherSprite.type || 'ruby' === otherSprite.type) {
+			   		snailBait.playSound(snailBait.chimesSoundElement);
+		   		}	 
 	   		}
 	   		else if ('button' === otherSprite.type && (sprite.falling || sprite.jumping)) {
 		   		if (!(sprite.jumping && sprite.ascendAnimationTimer.isRunning())) {
@@ -830,10 +856,16 @@ var SnailBait =  function () {
 	   fallOnPlatform : function(sprite) {
 		   sprite.top = snailBait.calculatePlatformTop(sprite.track) - sprite.height;
 		   sprite.stopFalling();
+		   
+		   snailBait.playSound(snailBait.thudSoundElement);
 	   },
 	   
 	   execute : function (sprite, now, fps, lastAnimationFrameTime) {
 			var dropDistance;
+			
+			if (sprite.jumping) {
+				return;
+			}
 			
 			if (!sprite.falling) {
 				if (!snailBait.platformUnderneath(sprite, sprite.track)) {
@@ -844,7 +876,9 @@ var SnailBait =  function () {
 			if (this.isOutOfPlay(sprite) || sprite.exploding) {
 				if (sprite.falling) {
 					sprite.stopFalling();
-					
+				}
+				
+				if (this.isOutOfPlay(sprite)) {
 					snailBait.loseLife();
 	   				setTimeout(function() {
 		   				snailBait.reset();
@@ -870,6 +904,10 @@ var SnailBait =  function () {
 					sprite.track--;
 					sprite.top += dropDistance;
 					console.log(sprite.track);
+					
+					if (sprite.track === 0) {
+						snailBait.playSound(snailBait.fallingWhistleSoundElement);
+					}
 				}
 			}
 	    }
@@ -938,12 +976,12 @@ var SnailBait =  function () {
 };
 
 
-// ! ------------------------ SNAILBAIT PROTOTYPE ----------------------------
+// ! --------- SNAILBAIT PROTOTYPE ----------------------------
 
 
 SnailBait.prototype = {
    
-   // ! ------------------------- DRAWING ------------------------------------
+   // ! -------------- DRAWING ------------------------------------
 
    draw: function (now, lastAnimationFrameTime) {
       this.setPlatformVelocity(now);
@@ -1005,7 +1043,7 @@ SnailBait.prototype = {
 	   }
    },
    
-   // ! ------------------------- GAMEPLAY ------------------------------------
+   // ! ------------- GAMEPLAY ------------------------------------
    
    turnLeft: function () {
       this.bgVelocity = -this.BACKGROUND_VELOCITY;
@@ -1056,9 +1094,11 @@ SnailBait.prototype = {
    
    revealInstructions: function() {
 	   this.instructionsElement.style.display = 'block';
+	   this.soundAndMusicElement.style.display = 'block';
 	   
 	   setTimeout(function() {
 		   snailBait.instructionsElement.style.opacity = 1.0;
+		   snailBait.soundAndMusicElement.style.opacity = 1.0;
 	   }, snailBait.SHORT_DELAY);
    },
    
@@ -1133,8 +1173,6 @@ SnailBait.prototype = {
 	   }, this.CANVAS_TRANSITION_DURATION);
    },
     
-   // Toast................................................................
-
    splashToast: function (text, howLong) {
       howLong = howLong || this.DEFAULT_TOAST_TIME;
 
@@ -1183,8 +1221,6 @@ SnailBait.prototype = {
 	   }
    },
 
-   // Pause................................................................
-
    togglePausedStateOfAllBehaviors: function (now) {
       
       var behavior;
@@ -1224,7 +1260,7 @@ SnailBait.prototype = {
       }
    },
 
-   // ! ------------------------- ANIMATION --------------------------------
+   // ! ------------ ANIMATION --------------------------------
 
    animate: function (now) { 
    
@@ -1297,6 +1333,10 @@ SnailBait.prototype = {
   	   }
   	   
   	   sprite.exploding = true;
+  	   
+  	   if (!silent) {
+	  	   this.playSound(this.explosionSoundElement);
+  	   }
    },
    
    shake: function() {
@@ -1369,7 +1409,7 @@ SnailBait.prototype = {
 	   }
    },
    
-   // ! ------------------------- SPRITE CREATION ---------------------------
+   // ! ---------- SPRITE CREATION ---------------------------
    
    createSprites : function(now) {
 	   this.createPlatformSprites(now);
@@ -1708,7 +1748,7 @@ SnailBait.prototype = {
 		}
    },
 
-   // ! ------------------------- UTILITIES ---------------------------------
+   // ! --------------- UTILITIES ---------------------------------
    
    isSpriteInGameCanvas: function(sprite) {
 	   // returns true or false
@@ -1787,7 +1827,35 @@ SnailBait.prototype = {
       return top;
    },
    
-   // ! ------------------------- INITIALIZATION ----------------------------
+   soundIsPlaying: function (sound) {
+      return !sound.ended && sound.currentTime > 0;
+   },
+   
+   playSound: function (sound) {
+      var track, index;
+
+      if (this.soundOn) {
+         if (!this.soundIsPlaying(sound)) {
+            sound.play();
+         }
+         else {
+            for (i=0; index < this.audioTracks.length; ++index) {
+               track = this.audioTracks[index];
+            
+               if (!this.soundIsPlaying(track)) {
+                  track.src = sound.currentSrc;
+                  track.load();
+                  track.volume = sound.volume;
+                  track.play();
+
+                  break;
+               }
+            }
+         }              
+      }
+   },
+   
+   // ! ------------- INITIALIZATION ----------------------------
 
    start: function () {
       
@@ -1796,6 +1864,15 @@ SnailBait.prototype = {
       this.splashToast('Good Luck!', 2000);
 
       requestNextAnimationFrame(snailBait.animate);
+   },
+   
+   begin: function() {
+	    this.initializeImages();
+		this.initializeSoundAndMusic();
+		this.createSprites();
+		this.setTimeRate(1.0); // 1.0 is normal; 0.5 is half-speed; etc.
+		this.revealInstructions();
+		/* this.revealCollisionRectangles(); */
    },
    
    setTimeRate: function(rate) {
@@ -1812,6 +1889,20 @@ SnailBait.prototype = {
       this.spritesheet.onload = function(e) {
          snailBait.start();
       };
+   },
+   
+   initializeSoundAndMusic: function() {
+	   snailBait.soundOn = snailBait.soundCheckboxElement.checked;
+	   snailBait.musicOn = snailBait.musicCheckboxElement.checked;
+	   
+	   this.soundtrackElement.volume 		  = this.SOUNDTRACK_VOLUME;
+	   this.plopSoundElement.volume 		  = this.PLOP_VOLUME;
+	   this.jumpWhistleSoundElement.volume 	  = this.JUMP_WHISTLE_VOLUME;
+	   this.thudSoundElement.volume		 	  = this.THUD_VOLUME;
+	   this.fallingWhistleSoundElement.volume = this.FALLING_WHISTLE_VOLUME;
+	   this.chimesSoundElement.volume 		  = this.CHIMES_VOLUME;
+	   this.explosionSoundElement.volume 	  = this.EXPLOSION_VOLUME;
+	   this.coinSoundElement.volume 	  	  = this.COIN_VOLUME;
    },
    
    equipRunnerForJumping: function () {
@@ -1942,17 +2033,27 @@ window.onfocus = function (e) {  // unpause if paused
 // Launch game.........................................................
 
 var snailBait = new SnailBait();
-snailBait.initializeImages();
-snailBait.createSprites();
-snailBait.setTimeRate(1.0); // 1.0 is normal; 0.5 is half-speed; etc.
-snailBait.revealInstructions();
-/* snailBait.revealCollisionRectangles(); */
-
+snailBait.begin();
 /*
 setTimeout(function() {
 	snailBait.turnRight();
 }, 1000);
 */
+
+snailBait.soundCheckboxElement.onchange = function(e) {
+	snailBait.soundOn = snailBait.soundCheckboxElement.checked;
+};
+
+snailBait.musicCheckboxElement.onchange = function(e) {
+	snailBait.musicOn = snailBait.musicCheckboxElement.checked;
+	
+	if (snailBait.musicOn) {
+		snailBait.soundtrackElement.play();
+	} 
+	else {
+		snailBait.soundtrackElement.pause();
+	}
+};
 
 snailBait.newGameLink.onclick = function(e) {
 	snailBait.restartGame();

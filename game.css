@@ -215,4 +215,14 @@ body {
 	
 	display: inline-block;
 	float: left;
+	background: url('images/background.png');
+}
+
+.checkbox-div {
+	display: inline;
+	text-shadow: 1px 1px 1px blue;
+}
+
+#sound-checkbox-div {
+	margin-right: 10px;
 }
