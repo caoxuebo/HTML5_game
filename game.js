@@ -39,14 +39,17 @@ var SnailBait =  function () {
    this.context = this.canvas.getContext('2d'),
    // Misc..................................................................
    this.toast = document.getElementById('toast'),
-   this.lives = document.getElementById('lives'),
-   this.livesIconLeft = document.getElementById('life-icon-left'),
-   this.livesIconMiddle = document.getElementById('life-icon-middle'),
-   this.livesIconRight = document.getElementById('life-icon-right'),
+   this.livesElement = document.getElementById('lives'),
    this.creditsElement = document.getElementById('credits'),
    this.newGameLink = document.getElementById('new-game-link'),
    this.scoreElement = document.getElementById('score'),
    this.instructionsElement = document.getElementById('instructions'),
+   this.loadingTitleElement = document.getElementById('loading-title'),
+   // Images...............................................
+   this.livesIconLeft = document.getElementById('life-icon-left'),
+   this.livesIconMiddle = document.getElementById('life-icon-middle'),
+   this.livesIconRight = document.getElementById('life-icon-right'),
+   this.runnerAnimatedGIFElement = document.getElementById('runner-animated-gif'),
    // Sound and Music elements...............................................
    this.soundAndMusicElement = document.getElementById('sound-and-music'),
    this.soundCheckboxElement = document.getElementById('sound-checkbox'),
@@ -1078,37 +1081,8 @@ SnailBait.prototype = {
 	   snailBait.startTransition();
    },
    
-   revealLivesIcons: function() {
-	   var LIVES_ICON_REVEAL_DELAY = 2000;
-	   
-	   setTimeout(function(e) {
-		   snailBait.livesIconLeft.style.opacity = 1.0;
-		   snailBait.livesIconRight.style.opacity = 1.0;
-		   snailBait.livesIconMiddle.style.opacity = 1.0;
-	   }, LIVES_ICON_REVEAL_DELAY);
-   },
-   
    updateScoreElement: function() {
 	   this.scoreElement.innerHTML = this.score;
-   },
-   
-   revealInstructions: function() {
-	   this.instructionsElement.style.display = 'block';
-	   this.soundAndMusicElement.style.display = 'block';
-	   
-	   setTimeout(function() {
-		   snailBait.instructionsElement.style.opacity = 1.0;
-		   snailBait.soundAndMusicElement.style.opacity = 1.0;
-	   }, snailBait.SHORT_DELAY);
-   },
-   
-   revealCredits: function() {
-	   this.creditsElement.style.display = 'block';
-	   
-	   setTimeout(function() {
-		   snailBait.creditsElement.style.opacity = 1.0;
-		   snailBait.revealLivesIcons();
-	   }, this.SHORT_DELAY);
    },
    
    startTransition: function() {
@@ -1858,12 +1832,26 @@ SnailBait.prototype = {
    // ! ------------- INITIALIZATION ----------------------------
 
    start: function () {
+   
+      var GOOD_LUCK_PAUSE = 1000,
+      	  GOOD_LUCK_DURATION = 2000,
+      	  REVEAL_PAUSE = 200,
+      	  LOADING_PAUSE = 2000;
       
-      this.equipRunner();
+      setTimeout(function() {
+	      snailBait.hideLoadingScreen();
+	      
+	      setTimeout(function() {
+		      setTimeout(function() {
+			      snailBait.splashToast('Good Luck!', GOOD_LUCK_DURATION);
+		      }, GOOD_LUCK_PAUSE);
+		      
+		      snailBait.revealGame();
+		      snailBait.startAnimation();
+		      
+	      }, REVEAL_PAUSE);
+      }, LOADING_PAUSE);
       
-      this.splashToast('Good Luck!', 2000);
-
-      requestNextAnimationFrame(snailBait.animate);
    },
    
    begin: function() {
@@ -1871,8 +1859,16 @@ SnailBait.prototype = {
 		this.initializeSoundAndMusic();
 		this.createSprites();
 		this.setTimeRate(1.0); // 1.0 is normal; 0.5 is half-speed; etc.
-		this.revealInstructions();
+		this.equipRunner();
 		/* this.revealCollisionRectangles(); */
+   },
+   
+   startAnimation: function() {
+	   if (this.soundOn && this.musicOn) {
+		   this.playSound(this.soundtrackElement);
+	   }
+	   this.animate();
+/* 	   this.showSlowWarning = true; */
    },
    
    setTimeRate: function(rate) {
@@ -1884,6 +1880,7 @@ SnailBait.prototype = {
    },
 
    initializeImages: function () {
+	  this.runnerAnimatedGIFElement.src = 'images/animated.gif';
       this.spritesheet.src = 'images/mySpritesheet.png';
    
       this.spritesheet.onload = function(e) {
@@ -1964,9 +1961,52 @@ SnailBait.prototype = {
       this.equipRunnerForFalling();
    },
    
+   revealLivesIcons: function() {
+	   var LIVES_ICON_REVEAL_DELAY = 2000;
+	   
+	   setTimeout(function(e) {
+		   snailBait.livesIconLeft.style.opacity = 1.0;
+		   snailBait.livesIconRight.style.opacity = 1.0;
+		   snailBait.livesIconMiddle.style.opacity = 1.0;
+	   }, LIVES_ICON_REVEAL_DELAY);
+   },
+   
+   revealCredits: function() {
+	   this.creditsElement.style.display = 'block';
+	   
+	   setTimeout(function() {
+		   snailBait.creditsElement.style.opacity = 1.0;
+		   snailBait.revealLivesIcons();
+	   }, this.SHORT_DELAY);
+   },
+   
+   hideLoadingScreen: function() {
+	   document.getElementById('loading').style.opacity = 0;
+   },
+   
+   revealGame: function() {
+	   this.canvas.style.display = 'block';
+	   
+	   this.scoreElement.style.display = 'block';
+	   this.instructionsElement.style.display = 'block';
+	   this.soundAndMusicElement.style.display = 'block';
+	   this.livesElement.style.display = 'block';
+	   
+	   setTimeout(function() {
+		   snailBait.canvas.style.opacity = 1.0;
+		   
+		   snailBait.scoreElement.style.opacity = 1.0;
+		   snailBait.instructionsElement.style.opacity = 1.0;
+		   snailBait.soundAndMusicElement.style.opacity = 1.0;
+		   snailBait.livesElement.style.opacity = 1.0;
+		   
+		   snailBait.revealLivesIcons();
+	   }, snailBait.SHORT_DELAY);
+   },
+   
 }; // end snailBait.prototype
    
-// ! ------------------------- EVENT HANDLERS ----------------------------
+// ! ---------- EVENT HANDLERS ----------------------------
    
 window.onkeydown = function (e) {
    var key = e.keyCode;
@@ -2033,12 +2073,6 @@ window.onfocus = function (e) {  // unpause if paused
 // Launch game.........................................................
 
 var snailBait = new SnailBait();
-snailBait.begin();
-/*
-setTimeout(function() {
-	snailBait.turnRight();
-}, 1000);
-*/
 
 snailBait.soundCheckboxElement.onchange = function(e) {
 	snailBait.soundOn = snailBait.soundCheckboxElement.checked;
@@ -2059,3 +2093,20 @@ snailBait.newGameLink.onclick = function(e) {
 	snailBait.restartGame();
 };
 
+snailBait.runnerAnimatedGIFElement.onload = function() {
+	snailBait.runnerAnimatedGIFElement.style.display = 'block';
+	snailBait.loadingTitleElement.style.display = 'block';
+	
+	setTimeout(function() {
+		snailBait.loadingTitleElement.style.opacity = 1.0;
+		snailBait.runnerAnimatedGIFElement.style.opacity = 1.0;
+	}, snailBait.SHORT_DELAY);
+}
+
+snailBait.begin();
+
+/*
+setTimeout(function() {
+	snailBait.turnRight();
+}, 1000);
+*/
