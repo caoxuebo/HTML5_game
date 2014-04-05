@@ -45,6 +45,10 @@ var SnailBait =  function () {
    this.scoreElement = document.getElementById('score'),
    this.instructionsElement = document.getElementById('instructions'),
    this.loadingTitleElement = document.getElementById('loading-title'),
+   // Slow running.............................................................
+   this.runningSlowlyElement = document.getElementById('running-slowly'),
+   this.slowlyOkayElement = document.getElementById('slowly-okay'),
+   this.slowlyWarningElement = document.getElementById('slowly-warning'),
    // Images...............................................
    this.livesIconLeft = document.getElementById('life-icon-left'),
    this.livesIconMiddle = document.getElementById('life-icon-middle'),
@@ -70,6 +74,8 @@ var SnailBait =  function () {
    this.STATIONARY = 3,
    this.MAX_NUMBER_OF_LIVES = 3,
    this.SHORT_DELAY = 50,
+   this.FPS_SLOW_CHECK_INTERVAL = 2000,
+   this.DEFAULT_RUNNING_SLOWLY_THRESHOLD = 40,
 
    // Sound and Music Constants..............................................
    
@@ -154,6 +160,13 @@ var SnailBait =  function () {
    // Fps  ............................................................
    this.lastFpsUpdateTime = 0,
    this.fps = 60,
+   this.runningSlowlyThreshold = this.DEFAULT_RUNNING_SLOWLY_THRESHOLD,
+   this.slowFlags = 0,
+   this.lastSlowWarningTime = 0,
+   this.showSlowWarning = false,
+   this.speedSamples = [60,60,60,60,60,60,60,60,60,60],
+   this.speedSamplesIndex = 0,
+   this.NUM_SPEED_SAMPLES = this.speedSamples.length,
    // Time ............................................................
    this.pauseStartTime = 0,
    this.totalTimePaused = 0,
@@ -1234,6 +1247,24 @@ SnailBait.prototype = {
          this.lastAnimationFrameTime += (now - this.pauseStartTime);
       }
    },
+   
+   showRunningSlowlyWarning: function(now, averageSpeed) {
+   
+	   this.slowlyWarningElement.innerHTML = 
+	        "Snail Bait is running at <font color='red'>"   +
+	        averageSpeed.toFixed(0) + "</font>"			    +
+	        " frames/second (fps), but it needs more than " +
+	        this.runningSlowlyThreshold						+
+	        " fps for the game to work correctly."
+	        
+	   this.runningSlowlyElement.style.display = 'block';
+	   
+	   setTimeout(function() {
+		   snailBait.runningSlowlyElement.style.opacity = 1.0;
+	   }, snailBait.SHORT_DELAY);
+	   
+	   this.lastSlowWarningTime = now;
+   },
 
    // ! ------------ ANIMATION --------------------------------
 
@@ -1247,8 +1278,12 @@ SnailBait.prototype = {
          }, snailBait.PAUSED_CHECK_INTERVAL);
       }
       else {
-         snailBait.draw(now, snailBait.lastAnimationFrameTime);
          snailBait.fps = snailBait.calculateFps(now); 
+         
+         if (snailBait.showSlowWarning && !snailBait.paused) {
+	         snailBait.checkFps(now);
+         }
+         snailBait.draw(now, snailBait.lastAnimationFrameTime);
          snailBait.lastAnimationFrameTime = now; // used in extended execute behavior !
          requestNextAnimationFrame(snailBait.animate);
       }
@@ -1781,6 +1816,44 @@ SnailBait.prototype = {
                 sprite.left - sprite.offset + sprite.width;
    },
    
+   checkFps: function(now) {
+	   var averageSpeed;
+	   
+	   if (this.windowHasFocus) {
+		   if (now - this.lastSlowWarningTime > this.FPS_SLOW_CHECK_INTERVAL) {
+			   this.updateSpeedSamples(snailBait.fps);
+			   
+			   averageSpeed = this.calculateAverageSpeed();
+			   
+			   if (averageSpeed < this.runningSlowlyThreshold) {
+				   this.showRunningSlowlyWarning(now, averageSpeed);
+			   }
+		   }
+	   }
+   },
+   
+   updateSpeedSamples: function(fps) {
+	   this.speedSamples[this.speedSamplesIndex] = fps;
+	   
+	   if (this.speedSamplesIndex !== this.NUM_SPEED_SAMPLES-1) { 
+		   this.speedSamplesIndex++;
+	   }
+	   else {
+		   this.speedSamplesIndex = 0;
+	   }
+   },
+   
+   calculateAverageSpeed: function() {
+	   var i,
+	       total = 0;
+	   
+	   for (i = 0; i < this.NUM_SPEED_SAMPLES; i++) {
+		   total += this.speedSamples[i];
+	   }
+	   
+	   return total/this.NUM_SPEED_SAMPLES;
+   },
+   
    calculateFps: function (now) {
       var fps = 1000 / (now - this.lastAnimationFrameTime) * this.timeFactor;
 /*       this.lastAnimationFrameTime = now; */
@@ -2121,6 +2194,11 @@ snailBait.runnerAnimatedGIFElement.onload = function() {
 		snailBait.loadingTitleElement.style.opacity = 1.0;
 		snailBait.runnerAnimatedGIFElement.style.opacity = 1.0;
 	}, snailBait.SHORT_DELAY);
+};
+
+snailBait.slowlyOkayElement.onclick = function() {
+	snailBait.runningSlowlyElement.style.opacity = 0;
+	snailBait.speedSamples = [60,60,60,60,60,60,60,60,60,60];
 }
 
 snailBait.checkRuntimeFlags();
