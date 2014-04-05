@@ -145,6 +145,7 @@ var SnailBait =  function () {
    // Images ............................................................
    this.spritesheet = new Image(),
    // Misc  ............................................................
+   this.skipIntro = false,
    this.lives = this.MAX_NUMBER_OF_LIVES,
    this.windowHasFocus = true,
    this.score = 0,
@@ -1838,6 +1839,12 @@ SnailBait.prototype = {
       	  REVEAL_PAUSE = 200,
       	  LOADING_PAUSE = 2000;
       
+      if (this.skipIntro === true) {
+	      this.revealGame();
+	      this.startAnimation();
+	      return;
+      }
+      
       setTimeout(function() {
 	      snailBait.hideLoadingScreen();
 	      
@@ -2004,6 +2011,14 @@ SnailBait.prototype = {
 	   }, snailBait.SHORT_DELAY);
    },
    
+   getParam: function(param) {
+	   return window.location.search.match(param) ? true : false;
+   },
+   
+   checkRuntimeFlags: function() {
+	   this.skipIntro = this.getParam('skipintro');
+   }
+   
 }; // end snailBait.prototype
    
 // ! ---------- EVENT HANDLERS ----------------------------
@@ -2094,6 +2109,11 @@ snailBait.newGameLink.onclick = function(e) {
 };
 
 snailBait.runnerAnimatedGIFElement.onload = function() {
+	
+	if (snailBait.skipIntro) {
+		return;
+	}
+	
 	snailBait.runnerAnimatedGIFElement.style.display = 'block';
 	snailBait.loadingTitleElement.style.display = 'block';
 	
@@ -2103,7 +2123,10 @@ snailBait.runnerAnimatedGIFElement.onload = function() {
 	}, snailBait.SHORT_DELAY);
 }
 
+snailBait.checkRuntimeFlags();
+
 snailBait.begin();
+
 
 /*
 setTimeout(function() {
