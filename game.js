@@ -45,6 +45,7 @@ var SnailBait =  function () {
    this.scoreElement = document.getElementById('score'),
    this.instructionsElement = document.getElementById('instructions'),
    this.loadingTitleElement = document.getElementById('loading-title'),
+   this.tweetElement = document.getElementById('tweet-link'),
    // Slow running.............................................................
    this.runningSlowlyElement = document.getElementById('running-slowly'),
    this.slowlyOkayElement = document.getElementById('slowly-okay'),
@@ -76,6 +77,9 @@ var SnailBait =  function () {
    this.SHORT_DELAY = 50,
    this.FPS_SLOW_CHECK_INTERVAL = 2000,
    this.DEFAULT_RUNNING_SLOWLY_THRESHOLD = 40,
+   this.TWEET_PREAMBLE = 'https://twitter.com/intent/tweet?text=I scored ';
+   this.TWEET_PROLOGUE = ' playing this html5 Canvas platformer: ' +
+   					   'http://bit.ly/NDV761/ &hashtags=html5';
 
    // Sound and Music Constants..............................................
    
@@ -2058,6 +2062,8 @@ SnailBait.prototype = {
 		   snailBait.creditsElement.style.opacity = 1.0;
 		   snailBait.revealLivesIcons();
 	   }, this.SHORT_DELAY);
+	   
+	   this.tweetElement.href = this.TWEET_PREAMBLE + this.score + this.TWEET_PROLOGUE;
    },
    
    hideLoadingScreen: function() {
