@@ -320,8 +320,6 @@ var SnailBait =  function () {
    
    // ! SpritesData coordinats on canvas................................
 
-   // Bats..............................................................
-   
    this.batData = [
       { left: 370, 	top: this.TRACK_2_BASELINE - this.BAT_CELLS_HEIGHT,   width: 34 },
       { left: 660, 	top: this.TRACK_3_BASELINE - this.BAT_CELLS_HEIGHT,   width: 46 },
@@ -330,8 +328,6 @@ var SnailBait =  function () {
       { left: 1960, top: this.TRACK_3_BASELINE - 2*this.BAT_CELLS_HEIGHT, width: 34 },
    ],
    
-   // Bees..............................................................
-
    this.beeData = [
       { left: 500,  top: 64 },
       { left: 944,  top: this.TRACK_2_BASELINE - this.BEE_CELLS_HEIGHT - 30 },
@@ -341,14 +337,10 @@ var SnailBait =  function () {
       { left: 2450, top: 275 },
    ],
    
-   // Buttons...........................................................
-
    this.buttonData = [
       { platformIndex: 7 },
       { platformIndex: 12 },
    ],
-
-   // Coins.............................................................
 
    this.coinData = [
       { left: 303,  top: this.TRACK_3_BASELINE - this.COIN_CELLS_HEIGHT }, 
@@ -363,16 +355,12 @@ var SnailBait =  function () {
       { left: 2200, top: this.TRACK_3_BASELINE - 3*this.COIN_CELLS_HEIGHT }, 
    ],
 
-   // Rubies............................................................
-
    this.rubyData = [
       { left: 200,  top: this.TRACK_1_BASELINE - this.RUBY_CELLS_HEIGHT },
       { left: 880,  top: this.TRACK_2_BASELINE - this.RUBY_CELLS_HEIGHT },
       { left: 1100, top: this.TRACK_2_BASELINE - 2*this.SAPPHIRE_CELLS_HEIGHT }, 
       { left: 1475, top: this.TRACK_1_BASELINE - this.RUBY_CELLS_HEIGHT },
    ],
-
-   // Sapphires.........................................................
 
    this.sapphireData = [
       { left: 680,  top: this.TRACK_1_BASELINE - this.SAPPHIRE_CELLS_HEIGHT },
@@ -381,10 +369,14 @@ var SnailBait =  function () {
       { left: 2333, top: this.TRACK_2_BASELINE - this.SAPPHIRE_CELLS_HEIGHT },
    ],
 
-   // Snails............................................................
-
    this.snailData = [
       { platformIndex: 13 },
+   ],
+
+   this.smokingHoleData = [
+   	  { left: 248, top: this.TRACK_2_BASELINE - 22 },
+   	  { left: 688, top: this.TRACK_3_BASELINE + 5  },
+   	  { left: 1352, top: this.TRACK_3_BASELINE - 18 },
    ],
    
 
@@ -527,7 +519,7 @@ var SnailBait =  function () {
       },
    ],
    
-   // ! Sprites arrays.................................................
+   // ! Sprite Arrays.................................................
    
    this.bats			= [],
    this.bees			= [],
@@ -538,8 +530,7 @@ var SnailBait =  function () {
    this.sapphires		= [],
    this.smokingHoles	= [],
    this.snails			= [],
-   // finally an array to hold all the sprite arrays
-   this.sprites			= [],
+   this.sprites			= [], // holds all the sprites 
    
    // ! Sprites behaviors...............................................
    
@@ -728,8 +719,14 @@ var SnailBait =  function () {
    },
    
    this.collideBehavior = {
+   
    		
    		isCandidateForCollision : function(sprite, otherSprite) {
+   		
+   			if (otherSprite.type === 'smoking hole') {
+	   			return false;
+   			}
+   			
 	   		var r = sprite.calculateCollisionRectangle(),
 	   			o = otherSprite.calculateCollisionRectangle();
 	   			
@@ -1045,13 +1042,23 @@ SnailBait.prototype = {
       for (var i=0; i < this.sprites.length; ++i) {
          sprite = this.sprites[i];
          if (sprite.visible && this.isSpriteInView(sprite)) {
-            sprite.update(now, this.fps, lastAnimationFrameTime);
+            sprite.update(now, this.fps, this.context, lastAnimationFrameTime);
          }
       }
    },
    
    drawSprites: function() {
+      
+      // we draw smoking holes first so they are underneath
+      // all other sprites
+      this.drawSmokingHoles();
+      
       for (var i=0; i < this.sprites.length; ++i) {
+      	  
+      	  if (this.sprites[i].type === 'smoking hole') {
+	      	  continue; // jump to next index
+      	  }
+      	  
 	      this.drawSprite(this.sprites[i]);
       }
    },
@@ -1061,6 +1068,12 @@ SnailBait.prototype = {
 	   	   this.context.translate(-sprite.offset, 0);
 		   sprite.draw(this.context);
 		   this.context.translate(sprite.offset, 0);
+	   }
+   },
+   
+   drawSmokingHoles: function() {
+	   for (var i = 0; i < this.smokingHoles.length; ++i) {
+		   this.drawSprite(this.smokingHoles[i]);
 	   }
    },
    
@@ -1320,6 +1333,7 @@ SnailBait.prototype = {
 	   var i, sprite;
 	   
 	   this.spriteOffset += this.platformVelocity / this.fps;
+	   
 	   for (i = 0; i < this.sprites.length; ++i) {
 		   sprite = this.sprites[i];
 		   
@@ -1425,7 +1439,8 @@ SnailBait.prototype = {
    
    // ! ---------- SPRITE CREATION ---------------------------
    
-   createSprites : function(now) {
+   createSprites: function(now) {
+	   
 	   this.createPlatformSprites(now);
 	   this.createRunnerSprite();
 	   
@@ -1436,8 +1451,9 @@ SnailBait.prototype = {
 	   this.createRubySprites();
 	   this.createSapphireSprites();
 	   this.createSnailSprites();
-	   this.initializeSprites();
+	   this.createSmokingHoles();
 	   
+	   this.initializeSprites();
 	   this.addSpritesToSpriteArray(); // platforms only for now
    },
    
@@ -1703,6 +1719,19 @@ SnailBait.prototype = {
       }
    },
    
+   createSmokingHoles: function() {
+	   var data;
+	   
+	   for (var i = 0; i < this.smokingHoleData.length; ++i) {
+		   data = this.smokingHoleData[i];
+		   
+		   this.smokingHoles.push(
+		   		new SmokingHole(30, // number of smoke bubbles
+		   						3,  // number of fire particles
+		   						data.left, data.top, 15)); // left, top, width
+	   }
+   },
+   
    armSnails: function () {
       var snail,
           snailBombArtist = new SpriteSheetArtist(this.spritesheet, this.snailBombCells);
@@ -1725,6 +1754,7 @@ SnailBait.prototype = {
    },
    
    addSpritesToSpriteArray : function() {
+		
 		for (var i=0; i < this.platforms.length; ++i) {
 			this.sprites.push(this.platforms[i]);
 		}
@@ -1758,7 +1788,7 @@ SnailBait.prototype = {
 		}
 		
 		for (var i=0; i < this.smokingHoles.length; ++i) {
-			this.sprites.push(this.snailBombs[i]);
+			this.sprites.push(this.smokingHoles[i]);
 		}
    },
 

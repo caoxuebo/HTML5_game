@@ -80,17 +80,17 @@ Sprite.prototype = {
 		context.restore();
 	}, // end draw()
 	
-	update: function (now, fps, lastAnimationFrameTime) {
+	update: function (now, fps, context, lastAnimationFrameTime) {
       for (var i = 0; i < this.behaviors.length; ++i) {
          if (this.behaviors[i] === undefined) { // Modified while looping?
             return;
          }
 
-         this.behaviors[i].execute(this, now, fps, lastAnimationFrameTime);
+         this.behaviors[i].execute(this, now, fps, context, lastAnimationFrameTime);
       }
    },
 	
-	calculateCollisionRectangle : function() {
+	calculateCollisionRectangle: function() {
 		return {
 			left:	 this.left - this.offset + this.collisionMargin.left,
 			right:	 this.left - this.offset + this.width - this.collisionMargin.right,
