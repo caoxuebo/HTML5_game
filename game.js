@@ -37,6 +37,8 @@ var SnailBait =  function () {
   
    this.canvas = document.getElementById('game-canvas'),
    this.context = this.canvas.getContext('2d'),
+   this.rulerCanvas = document.getElementById('ruler-canvas'),
+   this.rulerContext = this.rulerCanvas.getContext('2d'),
    // Misc..................................................................
    this.toast = document.getElementById('toast'),
    this.livesElement = document.getElementById('lives'),
@@ -74,6 +76,7 @@ var SnailBait =  function () {
    this.smokingHolesCheckboxElement = document.getElementById('smoking-holes-checkbox'),
    this.timeFactorReadoutElement = document.getElementById('time-rate-readout'),
    this.runningSlowlyReadoutElement = document.getElementById('running-slowly-readout'),
+   this.backgroundOffsetReadout = document.getElementById('background-offset-readout'),
 
    // ! Constants............................................................
 
@@ -1015,13 +1018,22 @@ SnailBait.prototype = {
    // ! -------------- DRAWING ------------------------------------
 
    draw: function (now, lastAnimationFrameTime) {
-      this.setPlatformVelocity(now);
-      this.setOffsets(now);
-
-      this.drawBackground();
+   
+   	  if (!this.paused) {
+	   	  this.setPlatformVelocity(now);
+	      this.setOffsets(now);
+	      this.updateSprites(now, lastAnimationFrameTime);
+   	  }
       
-      this.updateSprites(now, lastAnimationFrameTime);
-      this.drawSprites(now); // only platforms for now
+      this.drawBackground();
+      this.drawSprites(); 
+      
+      if (this.developerBackdoorVisible) {
+	      this.drawRuler();
+	      
+	      this.backgroundOffsetReadout.innerHTML =
+	      	   this.spriteOffset.toFixed(0);
+      }
    },
    
    drawBackground: function () {
@@ -1087,6 +1099,37 @@ SnailBait.prototype = {
    drawSmokingHoles: function() {
 	   for (var i = 0; i < this.smokingHoles.length; ++i) {
 		   this.drawSprite(this.smokingHoles[i]);
+	   }
+   },
+   
+   drawRuler: function() {
+	   var majorTickSpacing = 50,
+	   	   minorTickSpacing = 10,
+	   	   i;
+	   
+	   this.rulerContext.lineWidth = 0.5;
+	   this.rulerContext.fillStyle = 'blue';
+	   
+	   this.rulerContext.clearRect(0,0, this.rulerCanvas.width,
+	   									this.rulerCanvas.height);
+	   
+	   for (i = 0; i < this.BACKGROUND_WIDTH; i += minorTickSpacing) {
+		   if (i === 0) {
+			   continue;
+		   }
+		   
+		   if (i % majorTickSpacing === 0) {
+			   this.rulerContext.beginPath();
+			   this.rulerContext.moveTo(i + 0.5, this.rulerCanvas.height/2 + 2);
+			   this.rulerContext.lineTo(i + 0.5, this.rulerCanvas.height);
+			   this.rulerContext.stroke();
+			   this.rulerContext.fillText( (this.spriteOffset + i).toFixed(0), i-10, 10);
+		   }
+		   
+		   this.rulerContext.beginPath();
+		   this.rulerContext.moveTo(i + 0.5, 3*this.rulerCanvas.height/4);
+		   this.rulerContext.lineTo(i + 0.5, this.rulerCanvas.height);
+		   this.rulerContext.stroke();
 	   }
    },
    
@@ -1953,6 +1996,7 @@ SnailBait.prototype = {
    revealDeveloperBackdoor: function() {
 	   
 	   this.developerBackdoorElement.style.display = 'block';
+	   this.rulerCanvas.style.display = 'block';
 	   
 	   this.runningSlowlySlider.appendTo('running-slowly-slider');
 	   this.timeFactorSlider.appendTo('time-rate-slider');
@@ -1967,9 +2011,18 @@ SnailBait.prototype = {
 	   );
 	   	   
 	   this.developerBackdoorElement.style.opacity = 1.0;
+	   this.rulerCanvas.style.opacity = 1.0;
 	   this.canvas.style.cursor = 'move';
 	   
 	   this.developerBackdoorVisible = true;
+   },
+   
+   windowToCanvas: function(x, y) {
+	   var bbox = this.canvas.getBoundingClientRect();
+	   
+	   return { x: x - bbox.left * (this.canvas.width / bbox.width),
+		   		y: y - bbox.top * (this.canvas.height / bbox.height)
+	   };
    },
    
    // ! ------------- INITIALIZATION ----------------------------
@@ -2176,6 +2229,7 @@ window.onkeydown = function (e) {
    	   else {
 	   	   snailBait.developerBackdoorElement.style.opacity = 0;
 	   	   snailBait.developerBackdoorVisible = false;
+	   	   snailBait.rulerCanvas.style.opacity = 0;
    	   }
    }
    
@@ -2283,6 +2337,81 @@ snailBait.runningSlowlySlider.addChangeListener(function(e) {
 	   		 snailBait.MAX_RUNNING_SLOWLY_THRESHOLD).toFixed(0);
 });
 
+snailBait.canvas.onmousedown = function(e) {
+	
+	if (snailBait.developerBackdoorVisible) {
+		
+		snailBait.dragging = true;
+		
+		snailBait.mousedown = snailBait.windowToCanvas(e.clientX, e.clientY);
+		
+		snailBait.backgroundOffsetWhenDraggingStarted = snailBait.backgroundOffset;
+		snailBait.spriteOffsetWhenDraggingStarted = snailBait.spriteOffset;
+		snailBait.runner.visible = false;
+		
+		if (snailBait.mousedown.x > snailBait.runner.left &&
+			snailBait.mousedown.x < snailBait.runner.left + snailBait.runner.width) {
+			
+			if (snailBait.mousedown.y > snailBait.runner.top &&
+				snailBait.mousedown.y < snailBait.runner.top + snailBait.runner.height) {
+				
+				snailBait.draggingRunner = true;
+				snailBait.runner.visible = true;
+			}
+		}
+		
+		setTimeout(function() {
+			snailBait.rulerCanvas.style.opacity = 1.0;
+		}, snailBait.SHORT_DELAY);
+		
+		e.preventDefault();
+	}
+};
+
+snailBait.canvas.onmousemove = function(e) {
+	
+	var mousemove = snailBait.windowToCanvas(e.clientX, e.clientY),
+		deltaX;
+		
+	if (snailBait.developerBackdoorVisible && snailBait.dragging) {
+		deltaX = mousemove.x - snailBait.mousedown.x;
+		
+		if (snailBait.draggingRunner) {
+			snailBait.runner.left = mousemove.x;
+			snailBait.runner.top = mousemove.y;
+		}
+		else {
+			snailBait.backgroundOffset = 
+				snailBait.backgroundOffsetWhenDraggingStarted - deltaX;
+			
+			snailBait.spriteOffset = 
+				snailBait.spriteOffsetWhenDraggingStarted - deltaX;
+			
+			if (snailBait.backgroundOffset < 0 ||
+				snailBait.backgroundOffset > snailBait.BACKGROUND_WIDTH) {
+				
+				snailBait.backgroundOffset = 0;
+			}
+			
+			snailBait.backgroundOffsetReadout.innerHTML = 
+				snailBait.spriteOffset.toFixed(0);
+			
+			e.preventDefault();
+		}
+	}
+};
+
+window.onmouseup = function(e) {
+	
+	if (snailBait.developerBackdoorVisible) {
+		snailBait.dragging = false;
+		snailBait.runner.visible = true;
+		snailBait.draggingRunner = false;
+		snailBait.backgroundOffsetReadout.innerHTML = '';
+		
+		e.preventDefault();
+	}
+};
 
 snailBait.soundCheckboxElement.onchange = function(e) {
 	snailBait.soundOn = snailBait.soundCheckboxElement.checked;
