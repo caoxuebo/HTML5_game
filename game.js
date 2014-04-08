@@ -67,6 +67,13 @@ var SnailBait =  function () {
    this.coinSoundElement = document.getElementById('coin-sound'),
    this.jumpWhistleSoundElement = document.getElementById('jump-sound'),
    this.thudSoundElement = document.getElementById('thud-sound'),
+   // Developer backdoor elements...............................................
+   this.developerBackdoorElement = document.getElementById('developer-backdoor'),
+   this.collisionRectanglesCheckboxElement = document.getElementById('collision-rectangles-checkbox'),
+   this.detectRunningSlowlyCheckboxElement = document.getElementById('detect-running-slowly-checkbox'),
+   this.smokingHolesCheckboxElement = document.getElementById('smoking-holes-checkbox'),
+   this.timeFactorReadoutElement = document.getElementById('time-rate-readout'),
+   this.runningSlowlyReadoutElement = document.getElementById('running-slowly-readout'),
 
    // ! Constants............................................................
 
@@ -77,6 +84,8 @@ var SnailBait =  function () {
    this.SHORT_DELAY = 50,
    this.FPS_SLOW_CHECK_INTERVAL = 2000,
    this.DEFAULT_RUNNING_SLOWLY_THRESHOLD = 40,
+   this.MAX_RUNNING_SLOWLY_THRESHOLD = 60,
+   this.MAX_TIME_FACTOR = 2,
    this.TWEET_PREAMBLE = 'https://twitter.com/intent/tweet?text=I scored ';
    this.TWEET_PROLOGUE = ' playing this html5 Canvas platformer: ' +
    					   'http://bit.ly/NDV761/ &hashtags=html5';
@@ -161,6 +170,10 @@ var SnailBait =  function () {
    this.score = 0,
    this.scrollingDirection = this.STATIONARY,
    this.noScroll = false,
+   // Developer backdoor................................................
+   this.developerBackdoorVisible = false,
+   this.runningSlowlySlider = new COREHTML5.Slider('blue', 'cornflowerblue'),
+   this.timeFactorSlider = new COREHTML5.Slider('blue', 'red'),
    // Fps  ............................................................
    this.lastFpsUpdateTime = 0,
    this.fps = 60,
@@ -1937,6 +1950,28 @@ SnailBait.prototype = {
       }
    },
    
+   revealDeveloperBackdoor: function() {
+	   
+	   this.developerBackdoorElement.style.display = 'block';
+	   
+	   this.runningSlowlySlider.appendTo('running-slowly-slider');
+	   this.timeFactorSlider.appendTo('time-rate-slider');
+	   
+	   this.runningSlowlySlider.draw(
+	   	   this.runningSlowlyThreshold / 
+	   	   this.MAX_RUNNING_SLOWLY_THRESHOLD
+	   );
+	   
+	   this.timeFactorSlider.draw(
+	   	   this.timeFactor / this.MAX_TIME_FACTOR
+	   );
+	   	   
+	   this.developerBackdoorElement.style.opacity = 1.0;
+	   this.canvas.style.cursor = 'move';
+	   
+	   this.developerBackdoorVisible = true;
+   },
+   
    // ! ------------- INITIALIZATION ----------------------------
 
    start: function () {
@@ -1974,7 +2009,6 @@ SnailBait.prototype = {
 		this.createSprites();
 		this.setTimeRate(1.0); // 1.0 is normal; 0.5 is half-speed; etc.
 		this.equipRunner();
-		/* this.revealCollisionRectangles(); */
    },
    
    startAnimation: function() {
@@ -2135,6 +2169,16 @@ SnailBait.prototype = {
 window.onkeydown = function (e) {
    var key = e.keyCode;
    
+   if (key === 68 && e.ctrlKey) { // Ctrl+d
+   	   if (!snailBait.developerBackdoorVisible) {
+	   	   snailBait.revealDeveloperBackdoor();
+   	   }
+   	   else {
+	   	   snailBait.developerBackdoorElement.style.opacity = 0;
+	   	   snailBait.developerBackdoorVisible = false;
+   	   }
+   }
+   
    if (key === 83) { // 's'
 	   snailBait.noScroll = !snailBait.noScroll;
    }
@@ -2143,13 +2187,13 @@ window.onkeydown = function (e) {
       snailBait.togglePaused();
    }
    
-   if (key === 68 || key === 37) { // 'd' or left arrow
+   if (key === 37) { // left arrow
       snailBait.turnLeft();
    }
-   else if (key === 75 || key === 39) { // 'k'or right arrow
+   else if (key === 39) { // right arrow
       snailBait.turnRight();
    }
-   else if (key === 74) { // 'j'
+   else if (key === 32) { // 'space'
       if (!snailBait.runner.jumping) {
 	      snailBait.runner.jump();
       }
@@ -2194,9 +2238,51 @@ window.onfocus = function (e) {  // unpause if paused
    }
 };
 
-// Launch game.........................................................
+// In-game elements.........................................................
 
 var snailBait = new SnailBait();
+
+snailBait.smokingHolesCheckboxElement.onchange = function(e) {
+	snailBait.showSmokingHoles = snailBait.smokingHolesCheckboxElement.checked;
+};
+
+snailBait.detectRunningSlowlyCheckboxElement.onchange = function(e) {
+	snailBait.showSlowWarning = snailBait.detectRunningSlowlyCheckboxElement.checked;
+};
+
+snailBait.collisionRectanglesCheckboxElement.onchange = function(e) {
+	if (snailBait.collisionRectanglesCheckboxElement.checked) {
+		snailBait.revealCollisionRectangles();
+	}
+	else {
+		snailBait.hideCollisionRectangles();
+	}
+};
+
+snailBait.timeFactorSlider.addChangeListener(function(e) {
+	if (snailBait.timeFactorSlider.knobPercent < 0.01) {
+		snailBait.timeFactorSlider.knobPercent = 0.01;
+	}
+	
+	snailBait.setTimeRate(snailBait.timeFactorSlider.knobPercent * 
+						  (snailBait.MAX_TIME_FACTOR));
+	
+	snailBait.timeFactorReadoutElement.innerText = 
+	   		(snailBait.timeFactor * 100).toFixed(0);
+});
+
+snailBait.runningSlowlySlider.addChangeListener(function(e) {
+	
+	snailBait.runningSlowlyThreshold = 
+		(snailBait.runningSlowlySlider.knobPercent * 
+			snailBait.MAX_RUNNING_SLOWLY_THRESHOLD).toFixed(0);
+			
+	snailBait.runningSlowlyReadoutElement.innerText =
+	   		(snailBait.runningSlowlyThreshold /
+	   		 snailBait.MAX_RUNNING_SLOWLY_THRESHOLD *
+	   		 snailBait.MAX_RUNNING_SLOWLY_THRESHOLD).toFixed(0);
+});
+
 
 snailBait.soundCheckboxElement.onchange = function(e) {
 	snailBait.soundOn = snailBait.soundCheckboxElement.checked;

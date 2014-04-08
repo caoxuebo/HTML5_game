@@ -55,22 +55,58 @@
       
       <!-- Wrapper..................................................-->
       <div id='wrapper'>
+      
+      	 <!-- Developer backdoor......................................-->
+      	 <div id="developer-backdoor">
+      	    <div id="background-offset-readout"></div>
+      	     
+      	    <div class="left-group" id="running-slowly-threshold">
+      	     	<span class="prompt" id="running-slowly-prompt">
+      	     		Running slowly threshold
+      	     	</span><br />
+      	     	<div class="slider" id="running-slowly-slider"></div>
+      	     	<span class="readout" id="running-slowly-readout">40</span>&nbsp;fps
+      	    </div>
+      	     	
+  	     	<div class="left-group" id="time-rate">
+  	     		<span class="prompt" id="time-rate-prompt">
+  	     			Time Rate
+  	     		</span><br />
+  	     		<div class="slider" id="time-rate-slider"></div>
+  	     		<span class="readout" id="time-rate-readout">100</span>%
+  	     	</div>
+      	     	
+  	     	<div class="right-group" id="collision-rectangles">
+  	     		<input type="checkbox" id="collision-rectangles-checkbox" />
+  	     		Draw collision rectangles
+  	     	</div>
+      	     	
+  	     	<div class="right-group" id="detect-running-slowly">
+  	     		<input type="checkbox" id="detect-running-slowly-checkbox" checked />
+  	     		Warn when running slowly
+  	     	</div>
+      	     	
+  	     	<div class="right-group" id="smoking-holes">
+  	     		<input type="checkbox" id="smoking-holes-checkbox" checked="" />
+  	     		Smoke
+  	     	</div>
+      	 </div>
       		
-      		<!-- Credits..................................................-->
-      		<div id="credits" class="credits">
-	      		<div class="credit">
-		      		<div class="title">~ Game Design and programming ~</div>
-		      		<div class="attribution">
-		      			<a style="font-size: 1.25em;" href="http://amzn.to/LFsWcL">David Geary</a>
-		      		</div>
-	      		</div>
-	      		<p>
-	      			<a id="tweet-link" href="#" data-count="none"
-	      			   data-via="karlandreas" hashtags="#html5" 
-	      			   target="_blank" class="tweet">Tweet my score</a>
-	      			<a id="new-game-link" href="#">Play again</a>
-	      		</p>
-      		</div>
+      	 <!-- Credits..................................................-->
+      	 <div id="credits" class="credits">
+	         <div class="credit">
+		   		<div class="title">~ Game Design and programming ~</div>
+		   		<div class="attribution">
+		   			<a style="font-size: 1.25em;" href="http://amzn.to/LFsWcL">David Geary</a>
+		   		</div>
+	         </div>
+	         <p>
+	         	<a id="tweet-link" href="#" data-count="none"
+	         	   data-via="karlandreas" hashtags="#html5" 
+	         	   target="_blank" class="tweet">Tweet my score</a>
+	         	<a id="new-game-link" href="#">Play again</a>
+	         </p>
+      	 </div>
       		
       	 <!-- Loading...................................................-->
       	 <div id="loading">
@@ -79,12 +115,9 @@
       	 </div>
       	 	
          <!-- Toast...................................................-->
-
-         <div id='toast'>
-         </div>
+         <div id='toast'></div>
          
          <!-- Slow running warning.......................................-->
-         
          <div id="running-slowly" class="credits">
          	<h1>Snail Bait is running slowly</h1>
          	
@@ -109,8 +142,8 @@
          <!-- Arena..................................................-->
 
          <div id='arena'>
+            
             <!-- The game canvas.....................................-->
-
             <canvas id='game-canvas' width='800' height='400'>
                Your browser does not support HTML5 Canvas.
             </canvas>
@@ -129,12 +162,12 @@
             <!-- Instructions...............................................-->
             <div id="instructions">
 	            <div class="keys">
-	            	d / k
+	            	left / right Arrow
 	            	<div class="explanation">move left/right</div>
 	            </div>
 	            
 	            <div class="keys">
-	            	j / f <div class="explanation">jump</div>
+	            	Space <div class="explanation">jump</div>
 	            </div>
 	            
 	            <div class="keys">
@@ -146,6 +179,7 @@
 
       <!-- JavaScript................................................-->
       <script src='scripts/requestNextAnimationframe.js'></script>
+      <script src='scripts/slider.js'></script>
       <script src='scripts/timeSystem.js'></script>
       <script src='scripts/stopwatch.js'></script>
       <script src='scripts/animationTimer.js'></script>

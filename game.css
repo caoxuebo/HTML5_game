@@ -226,6 +226,34 @@ body {
 	font-size: 0.9em;
 }
 
+#developer-backdoor {
+	color: navy;
+	position: absolute;
+	margin: 0 auto;
+	margin-top: 72px;
+	margin-left: 6px;
+	width: 800px;
+	height: 110px;
+	border: thin solid brickred;
+	background: rgba(255, 255, 200, 0.8);
+	z-index: 10;
+	
+	-webkit-transition: opacity 1s;
+	-moz-transition: opacity 1s;
+	-o-transition: opacity 1s;
+	transition: opacity 1s;
+	
+	display: none;
+	opacity: 0;
+}
+
+.left-group {
+	float: left;
+}
+.right-group {
+	float: right;
+}
+
 #credits a:hover {
 	color: blue;
 	text-shadow: 1px 1px 1px rgba(0,0,200,0.5);
@@ -316,4 +344,36 @@ body {
 
 #sound-checkbox-div {
 	margin-right: 10px;
+}
+
+#running-slowly-slider {
+	margin-left: 0px;
+	margin-top: 10px;
+	width: 250px;
+	height: 50px;
+}
+
+#time-rate-slider {
+	margin-left: 0px;
+	margin-top: 10px;
+	width: 250px;
+	height: 50px;
+}
+
+#collision-rectangles {
+	margin-right: 23px;
+	margin-top: 0.5em;
+	text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.5);
+}
+
+#detect-running-slowly {
+	margin-right: 10px;
+	margin-top: 0.5em;
+	text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.5);
+}
+
+#smoking-holes {
+	margin-right: -67px;
+	margin-top: 2.2em;
+	text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.5);
 }
