@@ -832,7 +832,7 @@ var SnailBait =  function () {
 	   		
 	   		if ('snail' === otherSprite.type) {
 		   		otherSprite.visible = false;
-/* 		   		snailBait.showWinAnimation(); */
+		   		snailBait.showWinAnimation();
 	   		}
    		},
    
@@ -1218,7 +1218,7 @@ SnailBait.prototype = {
 			   }, CONTINUE_RUNNING_DURATION);
 		   }, REVEAL_RUNNER_DURATION);
 		   
-	   }, this.CANVAS_TRANSITION_DURATION);
+	   }, snailBait.CANVAS_TRANSITION_DURATION);
 	   
 	   
    },
@@ -1491,6 +1491,43 @@ SnailBait.prototype = {
 	   for (var i=0; i < this.sprites.length; ++i) {
 		   this.sprites[i].drawCollisionRectangle = false;
 	   }
+   },
+   
+   showWinAnimation: function() {
+	   this.bgVelocity = 0;
+	   this.runnerAnimatedGIFElement.style.display = 'block';
+	   this.scoreElement.innerHTML = 'Winner';
+	   this.runner.opacity = 0;
+	   this.startTransition();
+	   this.canvas.style.opacity = 0.1;
+	   
+	   setTimeout(function() {
+		   snailBait.runnerAnimatedGIFElement.style.opacity = 1.0;
+	   }, snailBait.SHORT_DELAY);
+	   
+	   setTimeout(function() {
+		   snailBait.runnerAnimatedGIFElement.style.opacity = 0;
+		   setTimeout(function() {
+			   snailBait.canvas.style.opacity = 1.0;
+			   snailBait.runnerAnimatedGIFElement.style.display = 'none';
+			   snailBait.scoreElement.innerHTML = snailBait.score;
+			   snailBait.runner.opacity = 1.0;
+			   snailBait.endTransition();
+			   snailBait.putSpriteOnTrack(snailBait.runner, 3);
+			   snailBait.reset();
+		   }, 2000);
+	   }, 4000);
+   },
+   
+   dimControls: function() {
+	   var DIM = 0.5,
+	   	   INSTRUCTIONS_DIMMING_DELAY = 5000,
+	   	   instructionsElement = document.getElementById('instructions');
+	   
+	   setTimeout(function(e) {
+	   	   instructionsElement.style.opacity = DIM;
+		   snailBait.soundAndMusicElement.style.opacity = DIM;
+	   }, INSTRUCTIONS_DIMMING_DELAY);
    },
    
    // ! ---------- SPRITE CREATION ---------------------------
@@ -2057,6 +2094,8 @@ SnailBait.prototype = {
    },
    
    begin: function() {
+   		this.dimControls();
+   		this.checkRuntimeFlags();
 	    this.initializeImages();
 		this.initializeSoundAndMusic();
 		this.createSprites();
@@ -2222,6 +2261,10 @@ SnailBait.prototype = {
 window.onkeydown = function (e) {
    var key = e.keyCode;
    
+   if (key === 87) { // w for win
+	   snailBait.showWinAnimation();
+   }
+   
    if (key === 68 && e.ctrlKey) { // Ctrl+d
    	   if (!snailBait.developerBackdoorVisible) {
 	   	   snailBait.revealDeveloperBackdoor();
@@ -2290,6 +2333,18 @@ window.onfocus = function (e) {  // unpause if paused
          }, 1000);
       }, 1000);
    }
+};
+
+window.onmouseup = function(e) {
+	
+	if (snailBait.developerBackdoorVisible) {
+		snailBait.dragging = false;
+		snailBait.runner.visible = true;
+		snailBait.draggingRunner = false;
+		snailBait.backgroundOffsetReadout.innerHTML = '';
+		
+		e.preventDefault();
+	}
 };
 
 // In-game elements.........................................................
@@ -2401,18 +2456,6 @@ snailBait.canvas.onmousemove = function(e) {
 	}
 };
 
-window.onmouseup = function(e) {
-	
-	if (snailBait.developerBackdoorVisible) {
-		snailBait.dragging = false;
-		snailBait.runner.visible = true;
-		snailBait.draggingRunner = false;
-		snailBait.backgroundOffsetReadout.innerHTML = '';
-		
-		e.preventDefault();
-	}
-};
-
 snailBait.soundCheckboxElement.onchange = function(e) {
 	snailBait.soundOn = snailBait.soundCheckboxElement.checked;
 };
@@ -2451,8 +2494,6 @@ snailBait.slowlyOkayElement.onclick = function() {
 	snailBait.runningSlowlyElement.style.opacity = 0;
 	snailBait.speedSamples = [60,60,60,60,60,60,60,60,60,60];
 }
-
-snailBait.checkRuntimeFlags();
 
 snailBait.begin();
 
