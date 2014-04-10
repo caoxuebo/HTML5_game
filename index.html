@@ -28,7 +28,7 @@
       	<source src="sounds/whistledown.ogg" type="audio/ogg">
       </audio>
       
-       <audio id="thud-sound">
+      <audio id="thud-sound">
       	<source src="sounds/thud.mp3" type="audio/mp3">
       	<source src="sounds/thud.ogg" type="audio/ogg">
       </audio>
@@ -55,6 +55,28 @@
       
       <!-- Wrapper..................................................-->
       <div id='wrapper'>
+
+    	 <!-- High scores............................................-->
+    	 <div id="high-score-toast" class="credits">
+		 	<p class="title">High score!</p>
+		 	
+		 	Enter your name:
+		 	
+		 	<input id="high-score-name" 
+		 		   class="snailbait-textfield">
+		 	<input id="high-score-add-score" 
+		 		   type="button" 
+		 		   value="add score!" disabled="true">
+		 	<input id="high-score-new-game"
+		 		   type="button"
+		 		   value="new game">
+		 	<p id="previous-high-scores-title">Previous High Scores</p>
+		 	
+		 	<div id="previous-high-scores">
+		 		<ol id="high-score-list"></ol>
+		 	</div>
+		 	
+    	 </div>
       
       	 <!-- Developer backdoor......................................-->
       	 <div id="developer-backdoor">
@@ -92,10 +114,11 @@
   	     	</div>
   	     	
       	 </div>
+      	 
       	 <!-- Developer ruler canvas..................................-->
-            <canvas id="ruler-canvas" width="800" height="50">
-               Your browser does not support HTML5 Canvas.
-            </canvas>
+         <canvas id="ruler-canvas" width="800" height="50">
+           Your browser does not support HTML5 Canvas.
+         </canvas>
       		
       	 <!-- Credits..................................................-->
       	 <div id="credits" class="credits">

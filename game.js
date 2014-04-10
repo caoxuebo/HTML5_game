@@ -77,6 +77,12 @@ var SnailBait =  function () {
    this.timeFactorReadoutElement = document.getElementById('time-rate-readout'),
    this.runningSlowlyReadoutElement = document.getElementById('running-slowly-readout'),
    this.backgroundOffsetReadout = document.getElementById('background-offset-readout'),
+   // High Scores............................................................
+   this.highScoreElement = document.getElementById('high-score-toast'),
+   this.highScoreListElement = document.getElementById('high-score-list'),
+   this.highScoreNameElement = document.getElementById('high-score-name'),
+   this.highScoreNewGameElement = document.getElementById('high-score-new-game'),
+   this.highScoreAddScoreElement = document.getElementById('high-score-add-score'),
 
    // ! Constants............................................................
 
@@ -89,9 +95,10 @@ var SnailBait =  function () {
    this.DEFAULT_RUNNING_SLOWLY_THRESHOLD = 40,
    this.MAX_RUNNING_SLOWLY_THRESHOLD = 60,
    this.MAX_TIME_FACTOR = 2,
-   this.TWEET_PREAMBLE = 'https://twitter.com/intent/tweet?text=I scored ';
+   this.TWEET_PREAMBLE = 'https://twitter.com/intent/tweet?text=I scored ',
    this.TWEET_PROLOGUE = ' playing this html5 Canvas platformer: ' +
-   					   'http://bit.ly/NDV761/ &hashtags=html5';
+   					   'http://bit.ly/NDV761/ &hashtags=html5',
+   this.HIGH_SCORE_TRANSITION_DURATION = 1000,
 
    // Sound and Music Constants..............................................
    
@@ -211,6 +218,12 @@ var SnailBait =  function () {
        new Audio(), new Audio(), new Audio(), new Audio(),
        new Audio(), new Audio(), new Audio(), new Audio()
    ];
+   // Server............................................................
+   this.serverAvailable = true,
+   this.serverSocket = new WebSocket('ws://mserve.kajohansen.com:5301'),
+   // High Scores.......................................................
+   this.highScorePending = false,
+   this.highScoresVisible = false,
    
    // ! Sprite Sheet Constants..........................................
    
@@ -395,7 +408,6 @@ var SnailBait =  function () {
    	  { left: 1352, top: this.TRACK_3_BASELINE - 18 },
    ],
    
-
    // ! Platforms coordinate on canvas (data)...........................
 
    this.platformData = [
@@ -1147,6 +1159,7 @@ SnailBait.prototype = {
       this.runner.runAnimationRate = this.RUN_ANIMATION_RATE;
       this.runnerArtist.cells = this.runnerCellsRight;
       this.runner.direction = this.RIGHT;
+      snailBait.checkHighScores();
    },
    
    loseLife: function() {
@@ -1154,7 +1167,16 @@ SnailBait.prototype = {
 	   this.updateLivesElement();
 	   
 	   if (this.lives === 1) {
-		   snailBait.splashToast('Last chance!');
+		   this.splashToast('Last chance!');
+	   }
+	   
+	   if (this.serverAvailable) {
+	   	  var data = {
+	   	  		"msg": "life lost",
+	   	  		left: snailBait.spriteOffset.toFixed(0),
+			   	top: snailBait.runner.top.toFixed(0)
+		   }
+		   this.serverSocket.send(JSON.stringify(data));
 	   }
 	   
 	   if (this.lives === 0) {
@@ -1162,10 +1184,21 @@ SnailBait.prototype = {
 	   }
    },
    
-   gameOver: function() {
+   gameOver: function(wonGame) {
 	   snailBait.splashToast('Game Over');
-	   snailBait.revealCredits();
-	   snailBait.startTransition();
+	   
+	   if (this.serverAvailable) {
+		   setTimeout(function() {
+			   snailBait.checkHighScores();
+		   }, snailArtist.DEFAULT_TOAST_TIME)
+	   }
+	   else {
+		   if (!wonGame) {
+			   this.revealCredits();
+		   }
+	   }
+	   
+	   this.startTransition();
    },
    
    updateScoreElement: function() {
@@ -1192,8 +1225,12 @@ SnailBait.prototype = {
 	   snailBait.runner.visible = false;
 	   snailBait.runner.artist.cells = snailBait.runnerCellsRight;
 	   
-	   if (snailBait.runner.jumping) { snailBait.runner.stopJumping(); };
-	   if (snailBait.runner.falling) { snailBait.runner.stopFalling(); };
+	   if (snailBait.runner.jumping) { 
+	   		snailBait.runner.stopJumping();
+	   };
+	   if (snailBait.runner.falling) { 
+	   		snailBait.runner.stopFalling(); 
+	   };
 	   
 	   snailBait.startTransition(); // Turns off some processing
 	   snailBait.canvas.style.opacity = 0; // Triggers CSS transitions
@@ -1224,6 +1261,7 @@ SnailBait.prototype = {
    },
    
    restartGame: function() {
+	   
 	   this.lives = this.MAX_NUMBER_OF_LIVES;
 	   this.updateLivesElement();
 	   this.creditsElement.style.opacity = 0;
@@ -1337,6 +1375,31 @@ SnailBait.prototype = {
 	   }, snailBait.SHORT_DELAY);
 	   
 	   this.lastSlowWarningTime = now;
+   },
+   
+   revealHighScores: function() {
+	   var HIGH_SCORES_REVEAL_DELAY = 2000;
+	   
+	   this.highScoreElement.style.display = 'block';
+	   this.highScoreNameElement.focus();
+	   this.highScoresVisible = true;
+	   
+	   setTimeout(function() {
+		   snailBait.highScoreElement.style.opacity = 1.0;
+	   }, HIGH_SCORES_REVEAL_DELAY);
+   },
+   
+   hideHighScores: function() {
+	   this.highScoreElement.style.opacity = 0;
+	   
+	   setTimeout(function() {
+		   snailBait.highScoreElement.style.display = 'none';
+		   snailBait.highScoresVisible = false;
+	   }, snailBait.HIGH_SCORE_TRANSITION_DURATION);
+   },
+   
+   checkHighScores: function() {
+	   this.serverSocket.send(JSON.stringify({'msg': 'get highscores'}));
    },
 
    // ! ------------ ANIMATION --------------------------------
@@ -1494,6 +1557,7 @@ SnailBait.prototype = {
    },
    
    showWinAnimation: function() {
+	   
 	   this.bgVelocity = 0;
 	   this.runnerAnimatedGIFElement.style.display = 'block';
 	   this.scoreElement.innerHTML = 'Winner';
@@ -1515,6 +1579,7 @@ SnailBait.prototype = {
 			   snailBait.endTransition();
 			   snailBait.putSpriteOnTrack(snailBait.runner, 3);
 			   snailBait.reset();
+			   snailBait.checkHighScores();
 		   }, 2000);
 	   }, 4000);
    },
@@ -2108,7 +2173,7 @@ SnailBait.prototype = {
 		   this.playSound(this.soundtrackElement);
 	   }
 	   this.animate();
-/* 	   this.showSlowWarning = true; */
+	   this.showSlowWarning = true;
    },
    
    setTimeRate: function(rate) {
@@ -2493,7 +2558,61 @@ snailBait.runnerAnimatedGIFElement.onload = function() {
 snailBait.slowlyOkayElement.onclick = function() {
 	snailBait.runningSlowlyElement.style.opacity = 0;
 	snailBait.speedSamples = [60,60,60,60,60,60,60,60,60,60];
-}
+};
+
+snailBait.highScoreNameElement.onkeypress = function() {
+	
+	if (snailBait.highScoreNameElement.value.length > 1) {
+		snailBait.highScoreAddScoreElement.disabled = false;
+		snailBait.highScorePending = false;
+	}
+};
+
+snailBait.highScoreAddScoreElement.onclick = function() {
+	
+	snailBait.highScoreAddScoreElement.disabled = true;
+	
+	var data = {
+		'new highscore' : {
+			'name' : snailBait.highScoreNameElement.value,
+			'score' : snailBait.score
+		}
+	}
+	
+	snailBait.serverSocket.send(JSON.stringify(data));
+};
+
+snailBait.serverSocket.onopen = function () {
+	// Determining accepted extensions
+	console.log("WebSocket Extensions:" + snailBait.serverSocket.extensions);
+	
+	var data = {
+		'msg': "ping"
+	}
+	snailBait.serverSocket.send(JSON.stringify(data)); // Send the message 'Ping' to the server
+};
+
+snailBait.highScoreNewGameElement.onclick = function() {
+	snailBait.restartGame();
+	snailBait.hideHighScores();
+};
+
+snailBait.serverSocket.onerror = function (error) {
+	console.log('WebSocket Error Type:' + error.type);
+};
+
+// respond to messages from the server
+snailBait.serverSocket.onmessage = function (e) {
+
+  var obj = JSON.parse(e.data);
+
+  if (obj.highscores && obj.highscores.length > 0) {
+	  console.log("Got highscores");
+	  console.log(obj.highscores.join(""));
+	  snailBait.highScoreListElement.innerHTML = obj.highscores.join("");
+	  snailBait.revealHighScores();
+  }
+};
 
 snailBait.begin();
 

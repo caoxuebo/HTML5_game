@@ -216,7 +216,7 @@ body {
 	
 	opacity: 0;
 	display: none;
-	z-index: 2;
+	z-index: 10;
 }
 
 .tweet {
@@ -396,3 +396,4 @@ body {
 	margin-top: 2.2em;
 	text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.5);
 }
+
